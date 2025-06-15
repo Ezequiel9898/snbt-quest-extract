@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +13,7 @@ interface QuestListProps {
 }
 
 export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [openIndex, setOpenIndex] = React.useState<number | null>(null);
 
   React.useEffect(() => {
     setOpenIndex(null); // Fecha todas ao atualizar a lista
@@ -37,9 +36,7 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
           {quests.length}
         </Badge>
       </div>
-      <ScrollArea
-        className={`max-h-72 px-2 py-2 overflow-y-auto ${customScrollbar}`}
-      >
+      <ScrollArea className="max-h-72 px-2 py-2 overflow-y-auto">
         <ul className="space-y-2">
           {quests.map((q, i) => (
             <li
@@ -81,7 +78,7 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
                 >
                   {openIndex === i && (
                     <pre
-                      className={`whitespace-pre-wrap break-words text-xs rounded bg-muted/80 p-2 mt-1 border max-h-40 overflow-auto ${customScrollbar}`}
+                      className="whitespace-pre-wrap break-words text-xs rounded bg-muted/80 p-2 mt-1 border max-h-40 overflow-auto"
                     >
                       {q}
                     </pre>
@@ -95,4 +92,3 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
     </Card>
   );
 };
-
