@@ -10,12 +10,10 @@ interface QuestListProps {
 }
 
 export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
-  // Corrige: inicializa todas como fechadas
   const [openStates, setOpenStates] = useState<boolean[]>(() =>
     quests.map(() => false)
   );
 
-  // Garante que o estado não fica defasado se quests mudar
   React.useEffect(() => {
     setOpenStates(quests.map(() => false));
   }, [quests]);
@@ -37,7 +35,7 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
         <span className="font-bold text-base">Quests extraídas</span>
         <Badge variant="outline" className="ml-auto">{quests.length}</Badge>
       </div>
-      {/* OBS: max-h específica para caber bem na tela, e sempre permitir scroll */}
+      {/* Deixe o ScrollArea com max-h fixa, mas sem overflow/y no ul */}
       <ScrollArea className="max-h-72 px-2 py-2">
         <ul className="space-y-2">
           {quests.map((q, i) => (
@@ -66,10 +64,10 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
                     <ArrowDown className="ml-2 opacity-70" size={18} />
                   )}
                 </button>
-                {/* Remova o max-h do painel da questão! */}
+                {/* Painel expande sem overflow/hidden, crescendo normalmente */}
                 <div
                   id={`quest-panel-${i}`}
-                  className={`overflow-hidden transition-all duration-300 ${
+                  className={`transition-all duration-300 ${
                     openStates[i]
                       ? "opacity-100 animate-accordion-down"
                       : "opacity-0 pointer-events-none animate-accordion-up"
