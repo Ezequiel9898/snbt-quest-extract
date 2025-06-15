@@ -6,8 +6,8 @@ export type ProcessResult = {
   jsonResult: string;
 };
 
+// Nova lógica para abreviação igualzinho ao Python
 function generateAbbreviation(modpackName: string): string {
-  // Igual Python
   const words = modpackName.trim().split(/[\W_]+/);
   if (!words.length) return "modpack";
   const abbrev = words.slice(0, -1).map(word => word ? word[0].toLowerCase() : "");
@@ -72,8 +72,8 @@ export async function processModpackZip(zipData: Uint8Array): Promise<ProcessRes
     const caminhoRel = caminhoArquivo;
     logLines.push(`→ ${caminhoRel}`);
     const conteudo = await zip.files[caminhoArquivo].async("uint8array").then(decodeContent);
-    // ATUALIZAÇÃO: processa linha-a-linha como no Python!
-    const { conteudoModificado, mapeamentos } = processarConteudoLinhaPorLinha(
+    // Substitui por lógica do Python
+    const { conteudoModificado, mapeamentos } = processarConteudoComoPython(
       conteudo,
       caminhoRel,
       questsDir,
@@ -97,8 +97,8 @@ export async function processModpackZip(zipData: Uint8Array): Promise<ProcessRes
   return { outputZip, logLines, jsonResult };
 }
 
-// ADAPTADO: processarConteudo linha a linha tipo Python
-function processarConteudoLinhaPorLinha(
+// ALGORITMO NOVO — fiel ao código Python do usuário!
+function processarConteudoComoPython(
   conteudo: string,
   caminhoRel: string,
   questsDir: string,
@@ -108,203 +108,155 @@ function processarConteudoLinhaPorLinha(
   const conteudoModificado: string[] = [];
   const mapeamentos: Record<string, string> = {};
 
-  // Parse manual para detectar capítulo/snbt basename
   const currentFilename = caminhoRel.split("/").pop() || "";
-  const fileId = currentFilename.endsWith(".snbt") ? currentFilename.replace(/\.snbt$/, "") : null;
-  const pathParts = caminhoRel.split("/");
-  let subdir = "";
+  const fileId = currentFilename.endsWith(".snbt") ? currentFilename.replace(/\.snbt$/, "") : undefined;
+
+  // Subdiretório tipo chapter_folder igual ao Python
+  let subpath = "";
   if (caminhoRel.startsWith(questsDir)) {
-    subdir = caminhoRel.slice(questsDir.length).replace(/^\//, "");
+    subpath = caminhoRel.slice(questsDir.length).replace(/^\//, "");
   }
-  const chapterFolder = subdir ? subdir.split("/")[0] : fileId;
+  const chapterFolder = subpath
+    ? subpath.split("/")[0]
+    : null;
 
-  let contextoAtual: "tasks" | "rewards" | "quests" | null = null;
   let braceDepth = 0;
-  let questTitleCounter = 1, questSubtitleCounter = 1, questDescCounter = 1;
-  let rewardTitleCounter = 1, taskTitleCounter = 1, rewardDescCounter = 1, taskDescCounter = 1;
+  let questTitleCounter = 1;
+  let questSubtitleCounter = 1;
+  let questDescCounter = 1;
+  let rewardTitleCounter = 1;
+  let taskTitleCounter = 1;
+  let chapterGroupTitleCounter = 1;
   let dentroDeDescription = false;
-  let descBuffer: string[] = [];
-  let inQuestArray = false;
-
-  function makeKey(tipo: string, idx: number) {
-    return `${abbreviation}.quests.${chapterFolder}.snbt.${fileId}.${tipo}${idx > 1 ? idx : ""}`;
-  }
-  function makeSectionKey(tipo: string, sec: string, id: string | undefined, idx: number) {
-    // tipo: 'task'|'reward', sec: 'tasks'|'rewards'
-    if (id)
-      return `${abbreviation}.quests.${chapterFolder}.snbt.${fileId}.${sec}.${id}.${tipo}`;
-    // fallback: numerado
-    return `${abbreviation}.quests.${chapterFolder}.snbt.${fileId}.${sec}.${tipo}${idx > 1 ? idx : ""}`;
-  }
-
-  let lastSectionId: string | undefined = undefined;
-  let lastType: "task"|"reward"|undefined = undefined;
+  let descLinhasTemp: string[] = [];
+  let contextoAtual: string | null = null;
 
   for (let i = 0; i < linhas.length; i++) {
     const linha = linhas[i];
     const stripped = linha.trim();
 
-    // Atualiza contexto
-    if (/^quests:\s*\[/.test(stripped)) {
-      contextoAtual = "quests";
-      inQuestArray = true;
-      // zera contadores para cada quest array (mas geralmente só há um por arquivo)
-      questTitleCounter = 1; questSubtitleCounter = 1; questDescCounter = 1;
-    }
-    if (/^tasks:\s*\[/.test(stripped)) {
-      contextoAtual = "tasks";
-      lastType = "task";
-      // reinicia contadores para tasks
-      taskTitleCounter = 1; taskDescCounter = 1;
-    }
-    if (/^rewards:\s*\[/.test(stripped)) {
-      contextoAtual = "rewards";
-      lastType = "reward";
-      rewardTitleCounter = 1; rewardDescCounter = 1;
-    }
-    // Checa fim de contexto
-    if (stripped === "]") {
-      if (contextoAtual === "tasks") contextoAtual = null;
-      else if (contextoAtual === "rewards") contextoAtual = null;
-      else if (contextoAtual === "quests") { contextoAtual = null; inQuestArray = false; }
-      lastSectionId = undefined;
-      lastType = undefined;
+    if (/^tasks:\s*\[/.test(stripped)) contextoAtual = "tasks";
+    else if (/^rewards:\s*\[/.test(stripped)) contextoAtual = "rewards";
+    else if (stripped === "]") contextoAtual = null;
+
+    // Open/close braces
+    const openBraces = (linha.match(/\{/g) || []).length + (linha.match(/\[/g) || []).length;
+    const closeBraces = (linha.match(/\}/g) || []).length + (linha.match(/\]/g) || []).length;
+    braceDepth += openBraces - closeBraces;
+
+    // description: [ ... ] inline (uma linha só)
+    const mDescInline = linha.match(/^\s*description:\s*\[(.*)\]\s*$/);
+    if (mDescInline) {
+      const indent = linha.match(/^(\s*)/)[1];
+      const descricoes = [...mDescInline[1].matchAll(/"((?:[^"\\]|\\.)*)"/g)].map(m => m[1]);
+      const novasLinhas = [`${indent}description: [`];
+      for (const valor of descricoes) {
+        const chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
+        mapeamentos[chave] = decodeUnicode(valor);
+        novasLinhas.push(`${indent}  "{${chave}}"`);
+        questDescCounter += 1;
+      }
+      novasLinhas.push(`${indent}]`);
+      conteudoModificado.push(...novasLinas);
+      continue;
     }
 
-    // Atualiza profundidade 
-    braceDepth += (linha.match(/[\[\{]/g) || []).length;
-    braceDepth -= (linha.match(/[\]\}]/g) || []).length;
-
-    // MULTILINE descriptions: description: [
-    if (/^\s*description:\s*\[$/.test(linha)) {
+    if (linha.includes("description: [") && !/^\s*description:\s*\[.*\]\s*$/.test(linha)) {
       dentroDeDescription = true;
-      descBuffer = [];
-      conteudoModificado.push(linha); // mantém o início da descrição
+      descLinhasTemp = [];
+      conteudoModificado.push(linha);
       continue;
     }
+
     if (dentroDeDescription) {
-      // Fim da descrição
-      if (/^\s*\]/.test(stripped)) {
+      if (linha.includes("]")) {
         dentroDeDescription = false;
-        conteudoModificado.push(...descBuffer);
+        conteudoModificado.push(...descLinhasTemp);
         conteudoModificado.push(linha);
-        descBuffer = [];
         continue;
       }
-      // Processa cada linha de descrição
-      const mDesc = linha.match(/^(\s*)"(.*)"\s*,?$/);
-      if (mDesc) {
-        const indent = mDesc[1];
-        const valorOriginal = mDesc[2];
-        let chave = "";
-        if (contextoAtual === "tasks" && lastSectionId) {
-          chave = makeSectionKey("desc", "tasks", lastSectionId, taskDescCounter);
-          mapeamentos[chave] = decodeUnicode(valorOriginal);
-          descBuffer.push(`${indent}"{${chave}}"`);
-          taskDescCounter++;
-        } else if (contextoAtual === "rewards" && lastSectionId) {
-          chave = makeSectionKey("desc", "rewards", lastSectionId, rewardDescCounter);
-          mapeamentos[chave] = decodeUnicode(valorOriginal);
-          descBuffer.push(`${indent}"{${chave}}"`);
-          rewardDescCounter++;
-        } else if (contextoAtual === "quests" || contextoAtual === null) {
-          chave = makeKey("desc", questDescCounter);
-          mapeamentos[chave] = decodeUnicode(valorOriginal);
-          descBuffer.push(`${indent}"{${chave}}"`);
-          questDescCounter++;
+
+      const matchDesc = linha.match(/^(\s*)"(.*)"\s*$/);
+      if (matchDesc) {
+        const indent = matchDesc[1];
+        const valorOriginal = matchDesc[2];
+        const chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
+        mapeamentos[chave] = decodeUnicode(valorOriginal);
+        descLinhasTemp.push(`${indent}"{${chave}}"`);
+        questDescCounter += 1;
+        continue;
+      }
+    }
+
+    // Special: chapter_groups.snbt — título
+    if (currentFilename === "chapter_groups.snbt") {
+      let replaced = false;
+      const novaLinha = linha.replace(/title:\s*"((?:[^"\\]|\\.)*)"/g, (_m, valorOriginal) => {
+        const chave = `${abbreviation}.chapter_groups.title${chapterGroupTitleCounter}`;
+        chapterGroupTitleCounter += 1;
+        mapeamentos[chave] = decodeUnicode(valorOriginal);
+        replaced = true;
+        return `title: "{${chave}}"`;
+      });
+      conteudoModificado.push(novaLinha);
+      if (replaced) continue;
+    }
+
+    // title em tasks/rewards ou geral
+    const matchTitle = linha.match(/^(\s*)title:\s*"((?:[^"\\]|\\.)*)"\s*$/);
+    if (matchTitle) {
+      const indent = matchTitle[1];
+      const valorOriginal = matchTitle[2];
+      const valorDecodificado = decodeUnicode(valorOriginal);
+
+      if (contextoAtual === "rewards") {
+        const chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.reward${rewardTitleCounter}`;
+        rewardTitleCounter += 1;
+        mapeamentos[chave] = valorDecodificado;
+        conteudoModificado.push(`${indent}title: "{${chave}}"`);
+        continue;
+      } else if (contextoAtual === "tasks") {
+        const chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.task${taskTitleCounter}`;
+        taskTitleCounter += 1;
+        mapeamentos[chave] = valorDecodificado;
+        conteudoModificado.push(`${indent}title: "{${chave}}"`);
+        continue;
+      }
+    }
+
+    // Cobre também title, subtitle especialmente, mas só se não for title tratado acima e não contexto especial
+    let modified = false;
+    for (const tipo of ["title", "subtitle"]) {
+      const match = linha.match(new RegExp(`^(\\s*)${tipo}:\\s*"((?:[^"\\\\]|\\\\.)*)"\\s*$`));
+      if (match) {
+        const indent = match[1];
+        const valorOriginal = match[2];
+        if (/\{ftbquests\./.test(valorOriginal)) break; // ignora se já é uma chave
+
+        // Exatamente igual o Python para data.snbt/chapter_folder, etc
+        let chave: string;
+        if (currentFilename === "data.snbt") {
+          chave = `${abbreviation}.modpack.${tipo}`;
+        } else if (chapterFolder && fileId && braceDepth <= 2) {
+          chave = `${abbreviation}.${chapterFolder}.${fileId}.${tipo}`;
+        } else if (chapterFolder && fileId && braceDepth > 2) {
+          const contador = tipo === "title" ? questTitleCounter : questSubtitleCounter;
+          chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.${tipo}${contador}`;
+          if (tipo === "title") questTitleCounter += 1;
+          else questSubtitleCounter += 1;
+        } else {
+          break; // não cobre
         }
-        continue;
-      }
-      descBuffer.push(linha); // fallback, mantém linha
-      continue;
-    }
-
-    // Identifica id da seção atual dentro de tasks/rewards para usar nos campos
-    // Ex: id: "51F29EA99BAE4EDA"
-    if ((contextoAtual === "tasks" || contextoAtual === "rewards") && /id:\s*"([^"]+)"/.test(stripped)) {
-      const m = stripped.match(/id:\s*"([^"]+)"/);
-      if (m) lastSectionId = m[1];
-    }
-
-    // Substituição inline de 'title: "..."'
-    const mTitle = linha.match(/^(\s*)title:\s*"((?:[^"\\]|\\.)*)"\s*,?$/);
-    if (mTitle) {
-      const indent = mTitle[1];
-      const valorOriginal = mTitle[2];
-      let chave = "";
-      if (contextoAtual === "tasks" && lastSectionId) {
-        chave = makeSectionKey("title", "tasks", lastSectionId, taskTitleCounter);
         mapeamentos[chave] = decodeUnicode(valorOriginal);
-        conteudoModificado.push(`${indent}title: "{${chave}}"`);
-        taskTitleCounter++;
-        continue;
-      } else if (contextoAtual === "rewards" && lastSectionId) {
-        chave = makeSectionKey("title", "rewards", lastSectionId, rewardTitleCounter);
-        mapeamentos[chave] = decodeUnicode(valorOriginal);
-        conteudoModificado.push(`${indent}title: "{${chave}}"`);
-        rewardTitleCounter++;
-        continue;
-      } else if (inQuestArray) {
-        chave = makeKey("title", questTitleCounter);
-        mapeamentos[chave] = decodeUnicode(valorOriginal);
-        conteudoModificado.push(`${indent}title: "{${chave}}"`);
-        questTitleCounter++;
-        continue;
-      } else { // cap de capítulo, arquivo etc
-        chave = makeKey("title", 1);
-        mapeamentos[chave] = decodeUnicode(valorOriginal);
-        conteudoModificado.push(`${indent}title: "{${chave}}"`);
-        continue;
+        conteudoModificado.push(`${indent}${tipo}: "{${chave}}"`);
+        modified = true;
+        break;
       }
     }
+    if (modified) continue;
 
-    // Substituição inline de 'subtitle: "..."'
-    const mSubtitle = linha.match(/^(\s*)subtitle:\s*"((?:[^"\\]|\\.)*)"\s*,?$/);
-    if (mSubtitle) {
-      const indent = mSubtitle[1];
-      const valorOriginal = mSubtitle[2];
-      let chave = "";
-      if (inQuestArray) {
-        chave = makeKey("subtitle", questSubtitleCounter);
-        mapeamentos[chave] = decodeUnicode(valorOriginal);
-        conteudoModificado.push(`${indent}subtitle: "{${chave}}"`);
-        questSubtitleCounter++;
-        continue;
-      } else {
-        chave = makeKey("subtitle", 1);
-        mapeamentos[chave] = decodeUnicode(valorOriginal);
-        conteudoModificado.push(`${indent}subtitle: "{${chave}}"`);
-        continue;
-      }
-    }
-
-    // Substituição inline para descrições de linha única: description: ["..."]
-    const mDescOneLine = linha.match(/^(\s*)description:\s*\[\s*"((?:[^"\\]|\\.)*)"\s*\]\s*$/);
-    if (mDescOneLine) {
-      const indent = mDescOneLine[1];
-      const valorOriginal = mDescOneLine[2];
-      let chave = "";
-      if (contextoAtual === "tasks" && lastSectionId) {
-        chave = makeSectionKey("desc", "tasks", lastSectionId, 1);
-        mapeamentos[chave] = decodeUnicode(valorOriginal);
-        conteudoModificado.push(`${indent}description: ["{${chave}}"]`);
-        continue;
-      } else if (contextoAtual === "rewards" && lastSectionId) {
-        chave = makeSectionKey("desc", "rewards", lastSectionId, 1);
-        mapeamentos[chave] = decodeUnicode(valorOriginal);
-        conteudoModificado.push(`${indent}description: ["{${chave}}"]`);
-        continue;
-      } else {
-        chave = makeKey("desc", questDescCounter);
-        mapeamentos[chave] = decodeUnicode(valorOriginal);
-        conteudoModificado.push(`${indent}description: ["{${chave}}"]`);
-        questDescCounter++;
-        continue;
-      }
-    }
-
-    // Fallback: mantém linha
-    conteudoModificado.push(linha);
+    // Copia linhas que não estão nas regras acima
+    if (!dentroDeDescription) conteudoModificado.push(linha);
   }
 
   return {
