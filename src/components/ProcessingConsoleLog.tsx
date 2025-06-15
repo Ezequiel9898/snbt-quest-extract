@@ -1,4 +1,3 @@
-
 import React from "react";
 import { TerminalSquare, Check, X } from "lucide-react";
 
@@ -53,7 +52,7 @@ export const ProcessingConsoleLog: React.FC<ProcessingConsoleLogProps> = ({ logL
         <TerminalSquare className="text-primary animate-pulse" size={20} />
         <span className="font-mono font-semibold text-sm tracking-widest text-primary/80">Log de Processamento</span>
       </div>
-      <div className="px-4 py-3 space-y-2 max-h-64 overflow-y-auto scrollbar-none text-xs bg-black/10">
+      <div className="px-4 py-3 space-y-2 max-h-64 overflow-y-auto scrollbar-none text-xs bg-black/10 select-text">
         {logLines.map((line, idx) => (
           <div key={idx}>{styleLine(line)}</div>
         ))}
