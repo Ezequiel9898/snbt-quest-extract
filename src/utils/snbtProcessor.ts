@@ -358,7 +358,7 @@ function salvarMapeamentos(
         questOrder.push(questKey);
       }
       let fieldName = parsed.field;
-      // Normaliza nomes de campo para ordem
+      // Normaliza nomes de campo
       if (fieldName.startsWith("desc")) fieldName = "desc" + (parsed.idx || "");
       if (fieldName.startsWith("task")) fieldName = "task" + (parsed.idx || "");
       if (fieldName.startsWith("reward")) fieldName = "reward" + (parsed.idx || "");
@@ -366,27 +366,41 @@ function salvarMapeamentos(
     }
   }
 
-  // Ordena as chaves internas conforme especificação do usuário
-  const fieldOrder = [
-    "title",
-    "subtitle",
-    "desc1", "desc2", "desc3", "desc4", "desc5",
-    "task1", "task2", "task3", "task4", "task5",
-    "reward1", "reward2", "reward3", "reward4", "reward5"
-  ];
+  // Nova lógica: ordenação manual dos campos por quest
+  function questFieldsOrdered(fields: Record<string, string>): string[] {
+    // Separar usando os prefixos e ordenar internamente pelo índice (se houver)
+    const titles: string[] = [];
+    const subtitles: string[] = [];
+    const descs: string[] = [];
+    const tasks: string[] = [];
+    const rewards: string[] = [];
+    for (const field of Object.keys(fields)) {
+      if (field.startsWith("title")) titles.push(field);
+      else if (field.startsWith("subtitle")) subtitles.push(field);
+      else if (field.startsWith("desc")) descs.push(field);
+      else if (field.startsWith("task")) tasks.push(field);
+      else if (field.startsWith("reward")) rewards.push(field);
+    }
+    // Ordena numericamente as listas com índices
+    const numericSort = (a: string, b: string) => {
+      const na = Number(a.replace(/\D/g, "")) || 1;
+      const nb = Number(b.replace(/\D/g, "")) || 1;
+      return na - nb;
+    };
+    descs.sort(numericSort);
+    tasks.sort(numericSort);
+    rewards.sort(numericSort);
+    // titles e subtitles geralmente só tem 1, mas ordena para garantir
+    titles.sort(numericSort);
+    subtitles.sort(numericSort);
+
+    return [...titles, ...subtitles, ...descs, ...tasks, ...rewards];
+  }
 
   // Monta o JSON final agrupado e ordenado por quest na ordem de aparição
   for (const questKey of questOrder) {
     const fields = questsGrouped[questKey];
-    // Garante ordem desejada dos campos
-    const orderedFields = Object.keys(fields).sort((a, b) => {
-      const ia = fieldOrder.indexOf(a);
-      const ib = fieldOrder.indexOf(b);
-      if (ia === -1 && ib === -1) return a.localeCompare(b);
-      if (ia === -1) return 1;
-      if (ib === -1) return -1;
-      return ia - ib;
-    });
+    const orderedFields = questFieldsOrdered(fields);
     for (const field of orderedFields) {
       const fullKey = `${questKey}.${field}`;
       finalJson[fullKey] = fields[field];
