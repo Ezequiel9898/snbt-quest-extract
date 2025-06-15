@@ -37,6 +37,7 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
         <span className="font-bold text-base">Quests extraídas</span>
         <Badge variant="outline" className="ml-auto">{quests.length}</Badge>
       </div>
+      {/* OBS: max-h específica para caber bem na tela, e sempre permitir scroll */}
       <ScrollArea className="max-h-72 px-2 py-2">
         <ul className="space-y-2">
           {quests.map((q, i) => (
@@ -65,13 +66,13 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
                     <ArrowDown className="ml-2 opacity-70" size={18} />
                   )}
                 </button>
-                {/* Animação de abrir/fechar */}
+                {/* Remova o max-h do painel da questão! */}
                 <div
                   id={`quest-panel-${i}`}
                   className={`overflow-hidden transition-all duration-300 ${
                     openStates[i]
-                      ? "max-h-[600px] opacity-100 animate-accordion-down"
-                      : "max-h-0 opacity-0 pointer-events-none animate-accordion-up"
+                      ? "opacity-100 animate-accordion-down"
+                      : "opacity-0 pointer-events-none animate-accordion-up"
                   }`}
                   aria-hidden={!openStates[i]}
                 >
