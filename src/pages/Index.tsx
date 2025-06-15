@@ -9,6 +9,8 @@ import { toast } from "@/components/ui/use-toast";
 import { Card } from "@/components/ui/card";
 import { extractQuestsFromSnbt } from "@/utils/extractQuestsFromSnbt";
 import { QuestList } from "@/components/QuestList";
+import { Badge } from "@/components/ui/badge";
+import { BookOpen, Info, ArrowDown, ArrowUp, Check, FileDown } from "lucide-react";
 
 const Index = () => {
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
@@ -102,8 +104,12 @@ const Index = () => {
     <div className="min-h-screen w-full bg-background flex flex-col items-center justify-start py-12 px-6">
       <div className="w-full max-w-5xl space-y-6">
         <header className="flex flex-col items-center justify-center gap-2 mb-2">
-          <h1 className="text-4xl font-bold">FTB Quests Tradutor Automático</h1>
-          <p className="text-base text-muted-foreground">
+          <h1 className="text-4xl font-bold flex items-center gap-2">
+            <BookOpen className="text-primary" size={36} />
+            FTB Quests Tradutor Automático
+            <Badge className="ml-2" variant="secondary">Beta</Badge>
+          </h1>
+          <p className="text-base text-muted-foreground max-w-2xl text-center">
             Faça upload dos arquivos <span className="font-semibold">.zip</span> ou <span className="font-semibold">.snbt</span> contendo <span className="font-mono">config/ftbquests/quests/*.snbt</span> e baixe os arquivos já <span className="font-semibold">mapeados para tradução</span> e o <span className="font-mono">en_us.json</span>.
           </p>
         </header>
@@ -115,20 +121,40 @@ const Index = () => {
             <QuestList quests={extractedQuests} />
           </div>
           <div>
-            <Card className="w-full mb-4 p-6 flex flex-col gap-2 bg-card/90">
-              <h2 className="font-semibold text-lg mb-2">Como funciona?</h2>
-              <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1 mb-2">
-                <li>Arraste aqui o arquivo <span className="font-mono font-semibold">modpack.zip</span> (ou exporte via CurseForge).</li>
-                <li>O site extrai todos os textos legíveis dos arquivos <b>.snbt</b> dentro de <span className="font-mono">config/ftbquests/quests</span>.</li>
-                <li>Os textos são convertidos em chaves de tradução – como <code>ptnq.quests.intro.welcome.title</code> – e substituídos dentro dos arquivos .snbt.</li>
-                <li>Todas as traduções extraídas são salvas em <span className="font-mono">output/en_us.json</span> para facilitar tradução futura.</li>
-                <li>Ao final, você pode baixar os arquivos .snbt processados e o JSON para uso no modpack.</li>
-              </ol>
-              <ul className="list-disc list-inside text-xs text-muted-foreground mt-2 pl-1">
-                <li>Compatível com modpacks FTB modernos.</li>
-                <li>Todo o processamento é feito no seu navegador: <b>seu arquivo NÃO é enviado para a internet</b>.</li>
-                <li>Design inspirado no script Python original do autor.</li>
-              </ul>
+            <Card className="w-full mb-4 p-0 flex flex-col gap-0 bg-card/90 shadow-lg border-2 border-muted">
+              <div className="flex items-center gap-2 p-4 pb-2 border-b">
+                <Info className="text-primary" size={20} />
+                <span className="font-semibold text-lg">Como funciona?</span>
+              </div>
+              <div className="p-4 pt-2">
+                <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1 mb-2">
+                  <li className="flex items-start gap-2">
+                    <ArrowDown size={16} className="mt-1 text-primary" />
+                    Arraste aqui o arquivo <span className="font-mono font-semibold">modpack.zip</span> (ou exporte via CurseForge).
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check size={16} className="mt-1 text-green-700 dark:text-green-400" />
+                    O site extrai todos os textos legíveis dos arquivos <b>.snbt</b> dentro de <span className="font-mono">config/ftbquests/quests</span>.
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <ArrowUp size={16} className="mt-1 text-primary" />
+                    Os textos são convertidos em chaves de tradução – como <code>ptnq.quests.intro.welcome.title</code> – e substituídos dentro dos arquivos .snbt.
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <BookOpen size={16} className="mt-1 text-secondary" />
+                    Todas as traduções extraídas são salvas em <span className="font-mono">output/en_us.json</span> para facilitar tradução futura.
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <FileDown size={16} className="mt-1 text-muted-foreground" />
+                    Ao final, você pode baixar os arquivos .snbt processados e o JSON para uso no modpack.
+                  </li>
+                </ol>
+                <ul className="list-disc list-inside text-xs text-muted-foreground mt-2 pl-1 space-y-1">
+                  <li>Compatível com modpacks FTB modernos.</li>
+                  <li>Todo o processamento é feito no seu navegador: <b>seu arquivo NÃO é enviado para a internet</b>.</li>
+                  <li>Design inspirado no script Python original do autor.</li>
+                </ul>
+              </div>
             </Card>
             <DownloadPanel outputZipBlob={outputZipBlob} jsonPreview={jsonPreview} />
           </div>
