@@ -9,6 +9,7 @@ import { extractQuestsFromSnbt } from "@/utils/extractQuestsFromSnbt";
 import { QuestList } from "@/components/QuestList";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Info, ArrowDown, ArrowUp, Check, FileDown, FileText } from "lucide-react";
+import { ProcessingConsoleLog } from "@/components/ProcessingConsoleLog";
 
 const Index = () => {
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
@@ -97,26 +98,27 @@ const Index = () => {
 
   // Layout principal, desktop-first, design limpo e sofisticado, largura máxima, sem sidebar.
   return (
-    <div className="min-h-screen w-full bg-background flex flex-col items-center justify-start py-12 px-6">
-      <div className="w-full max-w-5xl space-y-6">
-        <header className="flex flex-col items-center justify-center gap-2 mb-2">
-          <h1 className="text-4xl font-bold flex items-center gap-2">
-            <BookOpen className="text-primary" size={36} />
+    <div className="min-h-screen w-full bg-gradient-to-br from-background via-zinc-100/90 to-primary/5 flex flex-col items-center justify-start py-12 px-4 md:px-10">
+      <div className="w-full max-w-5xl space-y-7 md:space-y-10">
+        <header className="flex flex-col items-center justify-center gap-3 mb-4">
+          <h1 className="text-4xl md:text-5xl font-black flex items-center gap-2 tracking-tighter">
+            <BookOpen className="text-primary drop-shadow-sm" size={40} />
             FTB Quests Tradutor Automático
             <Badge className="ml-2" variant="secondary">Beta</Badge>
           </h1>
-          <p className="text-base text-muted-foreground max-w-2xl text-center">
-            Faça upload dos arquivos <span className="font-semibold">.zip</span> ou <span className="font-semibold">.snbt</span> contendo <span className="font-mono">config/ftbquests/quests/*.snbt</span> e baixe os arquivos já <span className="font-semibold">mapeados para tradução</span> e o <span className="font-mono">en_us.json</span>.
+          <p className="text-lg text-muted-foreground max-w-2xl text-center leading-relaxed">
+            Faça upload dos arquivos <span className="font-semibold">.zip</span> ou <span className="font-semibold">.snbt</span> contendo <span className="font-mono px-1 py-0.5 rounded bg-muted/40">config/ftbquests/quests/*.snbt</span>
+            e baixe os arquivos já <span className="font-semibold text-primary">mapeados para tradução</span> e o <span className="font-mono px-1 py-0.5 rounded bg-muted/40">en_us.json</span>.
           </p>
         </header>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 items-start">
           <div>
             <FileDropZone onFilesAccepted={handleFilesAccepted} processing={processing} />
-            <ProcessingLog logLines={logLines} />
+            <ProcessingConsoleLog logLines={logLines} />
             <QuestList quests={extractedQuests} />
           </div>
           <div>
-            <Card className="w-full mb-4 p-0 flex flex-col gap-0 bg-gradient-to-br from-primary/10 via-card/90 to-muted/30 shadow-xl border-2 border-muted animate-fade-in">
+            <Card className="w-full mb-4 p-0 flex flex-col gap-0 bg-gradient-to-br from-primary/10 via-card/90 to-muted/30 shadow-xl border-2 border-muted animate-fade-in rounded-2xl">
               <div className="flex items-center gap-2 p-4 pb-2 border-b">
                 <Info className="text-primary animate-pulse" size={22} />
                 <span className="font-semibold text-lg">Como funciona?</span>

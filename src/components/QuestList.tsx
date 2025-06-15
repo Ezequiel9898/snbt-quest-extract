@@ -1,11 +1,8 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Info, BookOpen, ArrowDown, ArrowUp } from "lucide-react";
-
-// Removido customScrollbar
 
 interface QuestListProps {
   quests: string[];
@@ -15,7 +12,7 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
   const [openIndex, setOpenIndex] = React.useState<number | null>(null);
 
   React.useEffect(() => {
-    setOpenIndex(null); // Fecha todas ao atualizar a lista
+    setOpenIndex(null);
   }, [quests]);
 
   const toggleQuest = (index: number) => {
@@ -27,23 +24,22 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
   }
 
   return (
-    <Card className="w-full mt-4 mb-2 p-0 bg-muted shadow-lg rounded-lg border-2 border-muted">
-      <div className="flex items-center gap-2 p-4 pb-2 border-b">
-        <BookOpen className="text-primary mr-1" size={20} />
-        <span className="font-bold text-base">Quests extraídas</span>
-        <Badge variant="outline" className="ml-auto">
+    <Card className="w-full mt-6 mb-2 p-0 bg-muted/60 shadow-2xl rounded-xl border-2 border-muted/80 overflow-visible transition hover:shadow-2xl hover:border-primary/50">
+      <div className="flex items-center gap-2 p-5 pb-2 border-b bg-gradient-to-r from-primary/5 to-background/60 rounded-t-xl">
+        <BookOpen className="text-primary mr-1" size={22} />
+        <span className="font-extrabold text-lg tracking-tight text-primary">Quests extraídas</span>
+        <Badge variant="outline" className="ml-auto text-primary bg-primary/10 border-primary/30 text-xs font-bold px-2 py-1">
           {quests.length}
         </Badge>
       </div>
-      {/* Removido ScrollArea e overflow */}
-      <div className="px-2 py-2 max-h-72">
-        <ul className="space-y-2">
+      <div className="relative px-3 pt-3 pb-3" style={{ minHeight: 60 }}>
+        <ul className="space-y-3">
           {quests.map((q, i) => (
             <li
               key={i}
-              className="bg-background/70 rounded-md border hover:border-primary transition-all duration-200 shadow-sm group"
+              className="bg-background/90 rounded-lg border hover:border-primary transition-all duration-200 shadow group"
             >
-              <div className="p-2">
+              <div className="p-3">
                 <button
                   type="button"
                   className="flex w-full items-center text-sm font-semibold gap-2 group-hover:text-primary transition-colors outline-none"
@@ -67,28 +63,36 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
                 <div
                   id={`quest-panel-${i}`}
                   aria-hidden={openIndex !== i}
-                  // Animação ao abrir/fechar usando scale e fade.
                   className={`w-full origin-top transition-all duration-300 ${
                     openIndex === i
-                      ? "opacity-100 scale-y-100 pointer-events-auto max-h-52"
+                      ? "opacity-100 scale-y-100 pointer-events-auto max-h-72"
                       : "opacity-0 scale-y-95 pointer-events-none max-h-0"
                   }`}
                   style={{
-                    transform: openIndex === i ? "scaleY(1)" : "scaleY(0.95)",
-                    overflow: "hidden"
+                    transform: openIndex === i ? "scaleY(1)" : "scaleY(0.97)",
+                    overflow: "hidden",
                   }}
                 >
                   {openIndex === i && (
-                    <pre
-                      className="whitespace-pre-wrap break-words text-xs rounded bg-muted/80 p-2 mt-1 border"
-                      style={{
-                        // Remove overflow/scroll
-                        maxHeight: "208px",
-                        overflow: "hidden"
-                      }}
-                    >
-                      {q}
-                    </pre>
+                    <div className="relative">
+                      <pre
+                        className="whitespace-pre-wrap break-words text-xs rounded bg-muted/80 p-3 mt-1 border border-muted/40 font-mono leading-snug overflow-hidden"
+                        style={{ maxHeight: "300px" }}
+                      >
+                        {q}
+                      </pre>
+                      {/* Fade sutil no fim para indicar overflow sem scroll */}
+                      <div
+                        className="pointer-events-none absolute bottom-0 left-0 w-full h-8"
+                        style={{
+                          background:
+                            "linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(230,230,245,0.19) 80%,rgba(230,230,245,0.82) 100%)",
+                          borderBottomLeftRadius: 8,
+                          borderBottomRightRadius: 8,
+                          display: q.length > 340 ? "block" : "none"
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
@@ -99,4 +103,3 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
     </Card>
   );
 };
-
