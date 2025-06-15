@@ -23,8 +23,8 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
   }
 
   return (
-    <Card className="w-full mt-6 mb-2 p-0 bg-muted/60 shadow-2xl rounded-xl border-2 border-muted/80 overflow-visible transition hover:shadow-2xl hover:border-primary/50">
-      <div className="flex items-center gap-2 p-5 pb-2 border-b bg-gradient-to-r from-primary/5 to-background/60 rounded-t-xl">
+    <Card className="w-full mt-6 mb-2 p-0 bg-card shadow-2xl rounded-xl border-2 border-muted/80 overflow-visible transition hover:shadow-2xl hover:border-primary/50">
+      <div className="flex items-center gap-2 p-5 pb-2 border-b bg-card rounded-t-xl">
         <BookOpen className="text-primary mr-1" size={22} />
         <span className="font-extrabold text-lg tracking-tight text-primary">Quests extraídas</span>
         <Badge variant="outline" className="ml-auto text-primary bg-primary/10 border-primary/30 text-xs font-bold px-2 py-1">
@@ -32,7 +32,7 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
         </Badge>
       </div>
       <div
-        className="relative px-3 pt-5 pb-5 max-h-[420px] md:max-h-[350px] w-full md:w-[92%] mx-auto bg-background/75 border border-muted/40 rounded-xl shadow-inner
+        className="relative px-3 pt-5 pb-5 max-h-[420px] md:max-h-[350px] w-full md:w-[92%] mx-auto bg-background border border-muted/40 rounded-xl shadow-inner
                    overflow-x-hidden overflow-y-auto transition-all"
         style={{
           scrollbarWidth: "none", // Firefox
@@ -50,7 +50,7 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
           {quests.map((q, i) => (
             <li
               key={i}
-              className="bg-background/90 rounded-lg border hover:border-primary transition-all duration-200 shadow group"
+              className="bg-muted rounded-lg border hover:border-primary transition-all duration-200 shadow group"
             >
               <div className="p-3">
                 <button
@@ -89,12 +89,11 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
                   {openIndex === i && (
                     <div className="relative">
                       <pre
-                        className="whitespace-pre-wrap break-words text-xs rounded bg-muted/80 p-3 mt-1 border border-muted/40 font-mono leading-snug overflow-hidden"
+                        className="whitespace-pre-wrap break-words text-xs rounded bg-muted p-3 mt-1 border border-muted/40 font-mono leading-snug overflow-hidden"
                         style={{ maxHeight: "300px" }}
                       >
                         {q}
                       </pre>
-                      {/* Fade sutil no fim para indicar overflow sem scroll */}
                       <div
                         className="pointer-events-none absolute bottom-0 left-0 w-full h-8"
                         style={{

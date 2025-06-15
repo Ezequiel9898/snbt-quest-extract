@@ -98,7 +98,7 @@ const Index = () => {
 
   // Layout principal, desktop-first, design limpo e sofisticado, largura máxima, sem sidebar.
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-background via-zinc-100/90 to-primary/5 flex flex-col items-center justify-start py-12 px-4 md:px-10">
+    <div className="min-h-screen w-full bg-background flex flex-col items-center justify-start py-12 px-4 md:px-10">
       <div className="w-full max-w-5xl space-y-7 md:space-y-10">
         <header className="flex flex-col items-center justify-center gap-3 mb-4">
           <h1 className="text-4xl md:text-5xl font-black flex items-center gap-2 tracking-tighter">
@@ -118,8 +118,8 @@ const Index = () => {
             <QuestList quests={extractedQuests} />
           </div>
           <div>
-            <Card className="w-full mb-4 p-0 flex flex-col gap-0 bg-gradient-to-br from-primary/10 via-card/90 to-muted/30 shadow-xl border-2 border-muted animate-fade-in rounded-2xl">
-              <div className="flex items-center gap-2 p-4 pb-2 border-b">
+            <Card className="w-full mb-4 p-0 flex flex-col gap-0 bg-card shadow-xl border-2 border-muted animate-fade-in rounded-2xl">
+              <div className="flex items-center gap-2 p-4 pb-2 border-b bg-card">
                 <Info className="text-primary animate-pulse" size={22} />
                 <span className="font-semibold text-lg">Como funciona?</span>
               </div>

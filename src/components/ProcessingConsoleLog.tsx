@@ -8,9 +8,7 @@ export interface ProcessingConsoleLogProps {
 export const ProcessingConsoleLog: React.FC<ProcessingConsoleLogProps> = ({ logLines }) => {
   if (!logLines?.length) return null;
 
-  // Regex helpers para estilização
   function styleLine(line: string) {
-    // Estilizar prefixos especiais dos logs do script
     if (/^Modpack: /.test(line)) {
       const prefix = "Modpack: ";
       const rest = line.slice(prefix.length);
@@ -42,17 +40,16 @@ export const ProcessingConsoleLog: React.FC<ProcessingConsoleLogProps> = ({ logL
         </span>
       );
     }
-    // defaults
     return <span>{line}</span>;
   }
 
   return (
-    <div className="w-full mt-4 mb-6 bg-zinc-900/90 dark:bg-zinc-800/70 border border-zinc-700 rounded-xl shadow-2xl p-0 overflow-hidden font-mono">
-      <div className="flex items-center gap-2 p-3 border-b border-zinc-800 bg-gradient-to-r from-black/30 via-zinc-800/50 to-zinc-900/30 select-none">
+    <div className="w-full mt-4 mb-6 bg-zinc-900 dark:bg-zinc-800 border border-zinc-700 rounded-xl shadow-2xl p-0 overflow-hidden font-mono">
+      <div className="flex items-center gap-2 p-3 border-b border-zinc-800 bg-zinc-950 dark:bg-zinc-800 select-none">
         <TerminalSquare className="text-primary animate-pulse" size={20} />
         <span className="font-mono font-semibold text-sm tracking-widest text-primary/80">Log de Processamento</span>
       </div>
-      <div className="px-4 py-3 space-y-2 max-h-64 overflow-y-auto scrollbar-none text-xs bg-black/10 select-text">
+      <div className="px-4 py-3 space-y-2 max-h-64 overflow-y-auto scrollbar-none text-xs bg-zinc-950/40 dark:bg-zinc-900/60 select-text">
         {logLines.map((line, idx) => (
           <div key={idx}>{styleLine(line)}</div>
         ))}
