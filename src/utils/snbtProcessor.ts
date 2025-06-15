@@ -368,35 +368,46 @@ function salvarMapeamentos(
 
   // Nova lógica: ordenação manual dos campos por quest
   function questFieldsOrdered(fields: Record<string, string>): string[] {
+    // Extrai todas as keys relevantes e separa nas listas para garantir a ordem exata desejada
     const titles: string[] = [];
     const subtitles: string[] = [];
     const descs: string[] = [];
     const tasks: string[] = [];
     const rewards: string[] = [];
-    const extras: string[] = []; // campos não classificados
+    const extras: string[] = [];
 
     for (const field of Object.keys(fields)) {
-      if (field.startsWith("title")) titles.push(field);
-      else if (field.startsWith("subtitle")) subtitles.push(field);
+      if (field === "title" || field.startsWith("title")) titles.push(field);
+      else if (field === "subtitle" || field.startsWith("subtitle")) subtitles.push(field);
       else if (field.startsWith("desc")) descs.push(field);
       else if (field.startsWith("task")) tasks.push(field);
       else if (field.startsWith("reward")) rewards.push(field);
       else extras.push(field);
     }
-    // Ordena numericamente as listas com índices
+
+    // Ordena numericamente listas com índice no sufixo
     const numericSort = (a: string, b: string) => {
-      const na = Number(a.replace(/\D/g, "")) || 1;
-      const nb = Number(b.replace(/\D/g, "")) || 1;
+      // extrai número ao final da string; se não houver, trata como 1
+      const na = Number((a.match(/\d+$/)?.[0]) || 1);
+      const nb = Number((b.match(/\d+$/)?.[0]) || 1);
       return na - nb;
     };
+
     titles.sort(numericSort);
     subtitles.sort(numericSort);
     descs.sort(numericSort);
     tasks.sort(numericSort);
     rewards.sort(numericSort);
-    extras.sort(); // ordem alfabética para os extras
+    extras.sort(); // ordem alfabética para extras
 
-    return [...titles, ...subtitles, ...descs, ...tasks, ...rewards, ...extras];
+    return [
+      ...titles,
+      ...subtitles,
+      ...descs,
+      ...tasks,
+      ...rewards,
+      ...extras,
+    ];
   }
 
   // Monta o JSON final agrupado e ordenado por quest na ordem de aparição
