@@ -43,7 +43,6 @@ const Index = () => {
           allQuests = allQuests.concat(extractQuestsFromSnbt(content));
         }
         setExtractedQuests(allQuests);
-        // ... keep rest of logic the same ...
         const result = await processModpackZip(arr);
         setLogLines(result.logLines);
         setJsonPreview(result.jsonResult.slice(0, 5000));
@@ -62,7 +61,6 @@ const Index = () => {
           allQuests = allQuests.concat(extractQuestsFromSnbt(content));
         }
         setExtractedQuests(allQuests);
-        // ... keep rest of logic igual ao zip
         const JSZip = (await import("jszip")).default;
         const zip = new JSZip();
         for (const file of snbtFiles) {
@@ -117,38 +115,55 @@ const Index = () => {
           <div>
             <FileDropZone onFilesAccepted={handleFilesAccepted} processing={processing} />
             <ProcessingLog logLines={logLines} />
-            {/* NOVO: Exibição das quests extraídas, só aparece se houver arquivos */}
             <QuestList quests={extractedQuests} />
           </div>
           <div>
-            <Card className="w-full mb-4 p-0 flex flex-col gap-0 bg-card/90 shadow-lg border-2 border-muted">
+            <Card className="w-full mb-4 p-0 flex flex-col gap-0 bg-gradient-to-br from-primary/10 via-card/90 to-muted/30 shadow-xl border-2 border-muted animate-fade-in">
               <div className="flex items-center gap-2 p-4 pb-2 border-b">
-                <Info className="text-primary" size={20} />
+                <Info className="text-primary animate-pulse" size={22} />
                 <span className="font-semibold text-lg">Como funciona?</span>
               </div>
-              <div className="p-4 pt-2">
-                <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1 mb-2">
-                  <li className="flex items-start gap-2">
-                    <ArrowDown size={16} className="mt-1 text-primary" />
-                    Arraste aqui o arquivo <span className="font-mono font-semibold">modpack.zip</span> (ou exporte via CurseForge).
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Check size={16} className="mt-1 text-green-700 dark:text-green-400" />
-                    O site extrai todos os textos legíveis dos arquivos <b>.snbt</b> dentro de <span className="font-mono">config/ftbquests/quests</span>.
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <ArrowUp size={16} className="mt-1 text-primary" />
-                    Os textos são convertidos em chaves de tradução – como <code>ptnq.quests.intro.welcome.title</code> – e substituídos dentro dos arquivos .snbt.
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <BookOpen size={16} className="mt-1 text-secondary" />
-                    Todas as traduções extraídas são salvas em <span className="font-mono">output/en_us.json</span> para facilitar tradução futura.
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <FileDown size={16} className="mt-1 text-muted-foreground" />
-                    Ao final, você pode baixar os arquivos .snbt processados e o JSON para uso no modpack.
-                  </li>
-                </ol>
+              <div className="p-4 pt-2 space-y-3">
+                <div className="flex flex-col gap-3">
+                  <Step
+                    icon={<ArrowDown size={18} className="text-blue-500 animate-bounce" />}
+                    text={
+                      <>Arraste aqui o arquivo <span className="font-mono font-semibold">modpack.zip</span> (ou exporte via CurseForge).</>
+                    }
+                  />
+                  <Step
+                    icon={<Check size={18} className="text-green-600 dark:text-green-400 animate-fade-in" />}
+                    text={
+                      <>
+                        O site extrai todos os textos legíveis dos arquivos <b>.snbt</b> dentro de <span className="font-mono">config/ftbquests/quests</span>.
+                      </>
+                    }
+                  />
+                  <Step
+                    icon={<ArrowUp size={18} className="text-primary animate-fade-in" />}
+                    text={
+                      <>
+                        Os textos são convertidos em chaves de tradução como <code>ptnq.quests.intro.welcome.title</code> e substituídos nos arquivos.
+                      </>
+                    }
+                  />
+                  <Step
+                    icon={<BookOpen size={18} className="text-secondary animate-fade-in" />}
+                    text={
+                      <>
+                        Todas as traduções extraídas são salvas em <span className="font-mono">output/en_us.json</span>&nbsp;para facilitar tradução futura.
+                      </>
+                    }
+                  />
+                  <Step
+                    icon={<FileDown size={18} className="text-muted-foreground animate-fade-in" />}
+                    text={
+                      <>
+                        Por fim, você pode baixar os arquivos .snbt processados e o JSON para uso no modpack.
+                      </>
+                    }
+                  />
+                </div>
                 <ul className="list-disc list-inside text-xs text-muted-foreground mt-2 pl-1 space-y-1">
                   <li>Compatível com modpacks FTB modernos.</li>
                   <li>Todo o processamento é feito no seu navegador: <b>seu arquivo NÃO é enviado para a internet</b>.</li>
@@ -170,5 +185,15 @@ const Index = () => {
     </div>
   );
 };
+
+// Novo componente para melhor visual dos passos
+function Step({ icon, text }: { icon: React.ReactNode; text: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3 bg-muted/60 rounded px-3 py-2 shadow group hover:scale-105 transition-transform">
+      <div className="mt-1">{icon}</div>
+      <span className="text-sm">{text}</span>
+    </div>
+  );
+}
 
 export default Index;

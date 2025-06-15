@@ -10,7 +10,6 @@ interface QuestListProps {
 }
 
 export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
-  // Permitir abrir uma quest por vez
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   React.useEffect(() => {
@@ -30,9 +29,11 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
       <div className="flex items-center gap-2 p-4 pb-2 border-b">
         <BookOpen className="text-primary mr-1" size={20} />
         <span className="font-bold text-base">Quests extraídas</span>
-        <Badge variant="outline" className="ml-auto">{quests.length}</Badge>
+        <Badge variant="outline" className="ml-auto">
+          {quests.length}
+        </Badge>
       </div>
-      <ScrollArea className="max-h-72 px-2 py-2 overflow-y-auto">
+      <ScrollArea className="max-h-72 px-2 py-2 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent">
         <ul className="space-y-2">
           {quests.map((q, i) => (
             <li
@@ -64,17 +65,16 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
                   id={`quest-panel-${i}`}
                   className={`w-full transition-all duration-300 ${
                     openIndex === i
-                      ? "opacity-100 animate-accordion-down max-h-48"
+                      ? "opacity-100 animate-accordion-down max-h-44"
                       : "opacity-0 pointer-events-none max-h-0"
                   }`}
                   aria-hidden={openIndex !== i}
-                  // O painel expandido pode rolar internamente, se o conteúdo for muito grande
                   style={{
                     overflow: openIndex === i ? "auto" : "hidden",
                   }}
                 >
                   {openIndex === i && (
-                    <pre className="whitespace-pre-wrap break-words text-xs rounded bg-muted/80 p-2 mt-1 border max-h-44 overflow-auto">
+                    <pre className="whitespace-pre-wrap break-words text-xs rounded bg-muted/80 p-2 mt-1 border max-h-40 overflow-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent">
                       {q}
                     </pre>
                   )}
@@ -87,3 +87,4 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
     </Card>
   );
 };
+
