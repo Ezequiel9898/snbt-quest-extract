@@ -10,10 +10,15 @@ interface QuestListProps {
 }
 
 export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
-  // Estado para animar a abertura individual das quests
-  const [openStates, setOpenStates] = useState<boolean[]>(
-    quests.map(() => quests.length <= 3)
+  // Corrige: inicializa todas como fechadas
+  const [openStates, setOpenStates] = useState<boolean[]>(() =>
+    quests.map(() => false)
   );
+
+  // Garante que o estado não fica defasado se quests mudar
+  React.useEffect(() => {
+    setOpenStates(quests.map(() => false));
+  }, [quests]);
 
   const toggleQuest = (index: number) => {
     setOpenStates((prev) =>
@@ -39,7 +44,6 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
               key={i}
               className="bg-background/70 rounded-md border hover:border-primary transition-all duration-200 shadow-sm group"
             >
-              {/* Animated details using Tailwind custom animation */}
               <div className="p-2">
                 <button
                   type="button"
@@ -61,12 +65,14 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
                     <ArrowDown className="ml-2 opacity-70" size={18} />
                   )}
                 </button>
+                {/* Animação de abrir/fechar */}
                 <div
                   id={`quest-panel-${i}`}
-                  className={`overflow-hidden transition-all duration-300 ${openStates[i]
-                    ? "max-h-[400px] opacity-100 animate-accordion-down"
-                    : "max-h-0 opacity-0 pointer-events-none"
-                    }`}
+                  className={`overflow-hidden transition-all duration-300 ${
+                    openStates[i]
+                      ? "max-h-[600px] opacity-100 animate-accordion-down"
+                      : "max-h-0 opacity-0 pointer-events-none animate-accordion-up"
+                  }`}
                   aria-hidden={!openStates[i]}
                 >
                   <pre className="whitespace-pre-wrap break-words text-xs rounded bg-muted/80 p-2 mt-1 border">
