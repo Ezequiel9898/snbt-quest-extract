@@ -66,9 +66,9 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
                 </button>
                 <div
                   id={`quest-panel-${i}`}
-                  className={`w-full transition-all duration-300 ${
+                  className={`w-full ${
                     openIndex === i
-                      ? "opacity-100 animate-accordion-down max-h-44"
+                      ? "opacity-100 max-h-44"
                       : "opacity-0 pointer-events-none max-h-0"
                   }`}
                   aria-hidden={openIndex !== i}
