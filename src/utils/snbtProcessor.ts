@@ -261,10 +261,15 @@ function salvarMapeamentos(
 
   // Função para padronizar chave por quest
   function parseKey(key: string) {
-    // Exemplo: c.quests.ciscos_dread_knight.snbt.ciscos_dread_knight.title
-    const questMatch = key.match(/^([^.]+)\.quests\.([^.]+)\.([^.]+)\.([^.]+)\.?(\d*)$/);
-    if (!questMatch) return null;
-    // c, ciscos_dread_knight, ciscos_dread_knight, campo (title...), idx
+    // Exemplo: c.quests.the_nether.snbt.46D0AAEEB69E28B3.title
+    // regex: prefix.quests.chapter.snbt.fileId.field[.idx]
+    const questMatch = key.match(/^([^.]+)\.quests\.([^.]+)\.snbt\.([^.]+)\.([^.]+)\.?(\d*)$/);
+    if (!questMatch) {
+      // LOG para depuração
+      console.log("[parseKey] Ignorando chave fora do padrão:", key);
+      return null;
+    }
+    // c, the_nether, 46D0AAEEB69E28B3, campo (title...), idx
     return {
       prefix: questMatch[1],
       chapter: questMatch[2],
@@ -285,13 +290,11 @@ function salvarMapeamentos(
       const questKey = `${parsed.prefix}.quests.${parsed.chapter}.snbt.${parsed.fileId}`;
       if (!questsGrouped[questKey]) questsGrouped[questKey] = {};
       let fieldName = parsed.field;
+      // Normaliza nomes de campo para ordem
       if (fieldName.startsWith("desc")) fieldName = "desc" + (parsed.idx || "");
       if (fieldName.startsWith("task")) fieldName = "task" + (parsed.idx || "");
       if (fieldName.startsWith("reward")) fieldName = "reward" + (parsed.idx || "");
-      if (parsed.field === "title" || parsed.field === "subtitle")
-        questsGrouped[questKey][fieldName] = mappings[key];
-      else
-        questsGrouped[questKey][fieldName] = mappings[key];
+      questsGrouped[questKey][fieldName] = mappings[key];
     }
   }
 
@@ -303,6 +306,7 @@ function salvarMapeamentos(
     "task1", "task2", "task3", "task4", "task5",
     "reward1", "reward2", "reward3", "reward4", "reward5"
   ];
+
   // Monta o JSON final na ordem
   for (const questKey of Object.keys(questsGrouped)) {
     const fields = questsGrouped[questKey];
