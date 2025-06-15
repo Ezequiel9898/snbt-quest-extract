@@ -98,185 +98,166 @@ function processarConteudo(
   questsDir: string,
   abbreviation: string
 ) {
-  const linhas = conteudo.split(/\r?\n/);
-  const conteudoModificado: string[] = [];
-  const mapeamentos: Record<string, string> = {};
-
+  // Parse manual para detectar capítulo/snbt basename
   const currentFilename = caminhoRel.split("/").pop() || "";
   const fileId = currentFilename.endsWith(".snbt") ? currentFilename.replace(/\.snbt$/, "") : null;
   const pathParts = caminhoRel.split("/");
-  // calcula subpath relativo a questsDir
   let subdir = "";
   if (caminhoRel.startsWith(questsDir)) {
     subdir = caminhoRel.slice(questsDir.length).replace(/^\//, "");
   }
   const chapterFolder = subdir ? subdir.split("/")[0] : "";
 
-  let braceDepth = 0;
-  let questTitleCounter = 1;
-  let questSubtitleCounter = 1;
-  let questDescCounter = 1;
-  let rewardTitleCounter = 1;
-  let taskTitleCounter = 1;
-  let chapterGroupTitleCounter = 1;
-  let dentroDeDescription = false;
-  let descLinhasTemp: string[] = [];
-  let contextoAtual: "tasks" | "rewards" | null = null;
-  let currentTaskOrRewardId: string | null = null;
-  let insideTaskOrReward: boolean = false;
+  // Mapeamentos
+  const mapeamentos: Record<string, string> = {};
+  const conteudoModificado: string[] = [];
 
-  for (let i = 0; i < linhas.length; ++i) {
-    const linha = linhas[i];
-    const stripped = linha.trim();
-
-    // Detecta contexto de tasks/rewards
-    if (stripped.startsWith("tasks: [")) {
-      contextoAtual = "tasks";
-      insideTaskOrReward = false;
-      currentTaskOrRewardId = null;
-    } else if (stripped.startsWith("rewards: [")) {
-      contextoAtual = "rewards";
-      insideTaskOrReward = false;
-      currentTaskOrRewardId = null;
-    } else if (stripped === "]") {
-      contextoAtual = null;
-      insideTaskOrReward = false;
-      currentTaskOrRewardId = null;
-    }
-
-    // Detecta início/fim de objeto task/reward (baseado em { })
-    if (contextoAtual && stripped === "{") {
-      insideTaskOrReward = true;
-      currentTaskOrRewardId = null;
-      conteudoModificado.push(linha);
-      continue;
-    }
-    if (contextoAtual && stripped === "},") {
-      insideTaskOrReward = false;
-      currentTaskOrRewardId = null;
-      conteudoModificado.push(linha);
-      continue;
-    }
-    // Detecta id da task/reward
-    if (insideTaskOrReward && stripped.startsWith("id:")) {
-      // Exemplo: id: "xxxxx"
-      const matchTaskId = stripped.match(/^id:\s*"([^"]+)"/);
-      if (matchTaskId) {
-        currentTaskOrRewardId = matchTaskId[1];
-      }
-      conteudoModificado.push(linha);
-      continue;
-    }
-
-    // description: [ ... ] inline
-    const descInlineMatch = linha.match(/^\s*description:\s*\[(.*?)\]\s*$/);
-    if (descInlineMatch) {
-      const indent = linha.match(/^(\s*)/)![1];
-      const descricao = [];
-      const regex = /"((?:[^"\\]|\\.)*)"/g;
-      let matchQ;
-      while ((matchQ = regex.exec(descInlineMatch[1])) !== null) {
-        descricao.push(matchQ[1]);
-      }
-      const novasLinhas = [`${indent}description: [`];
-      for (const valor of descricao) {
-        let chave;
-        if (contextoAtual && insideTaskOrReward && currentTaskOrRewardId) {
-          chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.${contextoAtual}.${currentTaskOrRewardId}.desc`;
-        } else {
-          chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
-          questDescCounter += 1;
-        }
-        mapeamentos[chave] = decodeUnicode(valor);
-        console.log(`[DEBUG] Mapping (descInline)`, chave, '=>', mapeamentos[chave]);
-        novasLinhas.push(`${indent}  "{${chave}}"`);
-      }
-      novasLinhas.push(`${indent}]`);
-      conteudoModificado.push(...novasLinhas);
-      continue;
-    }
-
-    // description block
-    if (linha.includes("description: [")) {
-      dentroDeDescription = true;
-      descLinhasTemp = [];
-      conteudoModificado.push(linha);
-      continue;
-    }
-    if (dentroDeDescription) {
-      if (linha.includes("]")) {
-        dentroDeDescription = false;
-        conteudoModificado.push(...descLinhasTemp);
-        conteudoModificado.push(linha);
-        continue;
-      }
-      const matchDesc = linha.match(/^(\s*)"((?:[^"\\\\]|\\\\.)*)"\s*$/);
-      if (matchDesc) {
-        const indent = matchDesc[1];
-        const valorOriginal = matchDesc[2];
-        let chave;
-        if (contextoAtual && insideTaskOrReward && currentTaskOrRewardId) {
-          chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.${contextoAtual}.${currentTaskOrRewardId}.desc`;
-        } else {
-          chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
-          questDescCounter += 1;
-        }
-        mapeamentos[chave] = decodeUnicode(valorOriginal);
-        console.log(`[DEBUG] Mapping (descBlock)`, chave, '=>', mapeamentos[chave]);
-        descLinhasTemp.push(`${indent}"{${chave}}"`);
-        continue;
-      }
-      descLinhasTemp.push(linha);
-      continue;
-    }
-
-    // titles / subtitles: quest, task, reward
-    let handled = false;
-    for (const tipo of ["title", "subtitle"]) {
-      const matchX = linha.match(new RegExp(`^(\\s*)${tipo}:\\s*"((?:[^"\\\\]|\\\\.)*)"`));
-      if (matchX) {
-        const indent = matchX[1];
-        const valor = matchX[2];
-        if (/\{ftbquests\./.test(valor)) break; // ignora já mapeadas
-        let chave = "";
-        if (contextoAtual && insideTaskOrReward && currentTaskOrRewardId) {
-          // Título de task ou reward
-          chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.${contextoAtual}.${currentTaskOrRewardId}.${tipo}`;
-        } else if (currentFilename === "data.snbt") {
-          chave = `${abbreviation}.modpack.${tipo}`;
-        } else if (chapterFolder && fileId && braceDepth <= 2) {
-          chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.${tipo}`;
-        } else if (chapterFolder && fileId && braceDepth > 2) {
-          const contador = tipo === "title" ? questTitleCounter : questSubtitleCounter;
-          chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.${tipo}${contador}`;
-          if (tipo === "title") questTitleCounter += 1;
-          else questSubtitleCounter += 1;
-        } else break;
-        mapeamentos[chave] = decodeUnicode(valor);
-        console.log(`[DEBUG] Mapping (${tipo})`, chave, '=>', mapeamentos[chave]);
-        conteudoModificado.push(`${indent}${tipo}: "{${chave}}"`);
-        handled = true;
-        break;
-      }
-    }
-    if (handled) continue;
-
-    // chapter_groups.snbt tratamento especial
-    if (currentFilename === "chapter_groups.snbt") {
-      const novaLinha = linha.replace(/title:\s*"((?:[^"\\]|\\.)*)"/g, (_match, val) => {
-        const chave = `${abbreviation}.chapter_groups.title${chapterGroupTitleCounter++}`;
-        mapeamentos[chave] = decodeUnicode(val);
-        console.log(`[DEBUG] Mapping (chapter_groups)`, chave, '=>', mapeamentos[chave]);
-        return `title: "{${chave}}"`;
-      });
-      conteudoModificado.push(novaLinha);
-      continue;
-    }
-
-    conteudoModificado.push(linha);
+  // Salva campo do capítulo, se houver
+  const chapterId = fileId || "unknown";
+  // Extrai campos fora de "quests: ["
+  const chapterTitleMatch = conteudo.match(/^\s*title:\s*(.+)$/m);
+  if (chapterTitleMatch) {
+    mapeamentos[
+      `${abbreviation}.quests.${chapterFolder}.snbt.${chapterId}.title`
+    ] = decodeUnicode(chapterTitleMatch[1].replace(/^"/, "").replace(/"$/, ""));
   }
-  console.log(`[DEBUG] Mapping count for ${caminhoRel}:`, Object.keys(mapeamentos).length);
-  return { conteudoModificado: conteudoModificado.join("\n"), mapeamentos };
+  const chapterSubtitleMatch = conteudo.match(/^\s*subtitle:\s*(.+)$/m);
+  if (chapterSubtitleMatch) {
+    mapeamentos[
+      `${abbreviation}.quests.${chapterFolder}.snbt.${chapterId}.subtitle`
+    ] = decodeUnicode(chapterSubtitleMatch[1].replace(/^"/, "").replace(/"$/, ""));
+  }
+  const chapterDescMatch = conteudo.match(/^\s*description:\s*\[\s*(".*?")\s*\]/ms);
+  if (chapterDescMatch) {
+    mapeamentos[
+      `${abbreviation}.quests.${chapterFolder}.snbt.${chapterId}.desc`
+    ] = decodeUnicode(chapterDescMatch[1].replace(/^"/, "").replace(/"$/, ""));
+  }
+
+  // Parse array principal de quests com regex "quests: [" ... "]"
+  const questsArrMatch = conteudo.match(/quests:\s*\[([\s\S]*?)\]/m);
+  if (questsArrMatch) {
+    const questsArrContent = questsArrMatch[1];
+    // Split on top-level objects (quest): detect lines that start with "{" at column 0
+    const questBlocks = questsArrContent
+      .split(/^\s*\{/m)
+      .map((block, i) => (i === 0 ? block : "{" + block))
+      .filter(b => b.trim().length > 10 && b.includes("title:")); // rudimentary filter
+
+    for (const questBlock of questBlocks) {
+      // Extrai o id da quest (obrigatório)
+      const idMatch = questBlock.match(/^\s*id:\s*"([^"]+)"/m);
+      const questId = idMatch?.[1] || "";
+
+      // title
+      const titleMatch = questBlock.match(/^\s*title:\s*"([^"]+)"/m);
+      if (titleMatch && questId) {
+        mapeamentos[
+          `${abbreviation}.quests.${chapterFolder}.snbt.${chapterId}.quest.${questId}.title`
+        ] = decodeUnicode(titleMatch[1]);
+      }
+      // subtitle
+      const subtitleMatch = questBlock.match(/^\s*subtitle:\s*"([^"]+)"/m);
+      if (subtitleMatch && questId) {
+        mapeamentos[
+          `${abbreviation}.quests.${chapterFolder}.snbt.${chapterId}.quest.${questId}.subtitle`
+        ] = decodeUnicode(subtitleMatch[1]);
+      }
+      // description (lista: description: [ ... ])
+      const descriptionArrMatch = questBlock.match(/description:\s*\[([\s\S]*?)\]/m);
+      if (descriptionArrMatch && questId) {
+        // extrai todas as linhas "   \"....\","
+        const descLines = [];
+        const descRegex = /"(.*?)"/g;
+        let m;
+        while ((m = descRegex.exec(descriptionArrMatch[1])) !== null) {
+          if (m[1].trim() !== "")
+            descLines.push(decodeUnicode(m[1]));
+        }
+        if (descLines.length) {
+          mapeamentos[
+            `${abbreviation}.quests.${chapterFolder}.snbt.${chapterId}.quest.${questId}.desc`
+          ] = descLines.join("\\n");
+        }
+      }
+
+      // --- TASKS ---
+      // Busca por tasks: [ ... ]
+      const tasksArrMatch = questBlock.match(/tasks:\s*\[([\s\S]*?)\]/m);
+      if (tasksArrMatch) {
+        // Regex de cada task: "{ ... }"
+        const taskBlocks = tasksArrMatch[1]
+          .split(/^\s*\{/m)
+          .map((b, i) => (i === 0 ? b : "{" + b))
+          .filter(b => b.trim().length > 2 && b.includes("id:"));
+        for (const taskBlock of taskBlocks) {
+          const taskIdMatch = taskBlock.match(/id:\s*"([^"]+)"/m);
+          const taskId = taskIdMatch?.[1];
+          const titleMatch = taskBlock.match(/^\s*title:\s*"([^"]+)"/m);
+          if (titleMatch && taskId && questId) {
+            mapeamentos[
+              `${abbreviation}.quests.${chapterFolder}.snbt.${chapterId}.quest.${questId}.tasks.${taskId}.title`
+            ] = decodeUnicode(titleMatch[1]);
+          }
+          // description em task
+          const descMatch = taskBlock.match(/description:\s*\[([\s\S]*?)\]/m);
+          if (descMatch && taskId && questId) {
+            const descs = [];
+            const descRegex = /"(.*?)"/g;
+            let dm;
+            while ((dm = descRegex.exec(descMatch[1])) !== null) {
+              if (dm[1].trim() !== "")
+                descs.push(decodeUnicode(dm[1]));
+            }
+            if (descs.length) {
+              mapeamentos[
+                `${abbreviation}.quests.${chapterFolder}.snbt.${chapterId}.quest.${questId}.tasks.${taskId}.desc`
+              ] = descs.join("\\n");
+            }
+          }
+        }
+      }
+
+      // --- REWARDS ---
+      const rewardsArrMatch = questBlock.match(/rewards:\s*\[([\s\S]*?)\]/m);
+      if (rewardsArrMatch) {
+        // Regex de cada reward: "{ ... }"
+        const rewardBlocks = rewardsArrMatch[1]
+          .split(/^\s*\{/m)
+          .map((b, i) => (i === 0 ? b : "{" + b))
+          .filter(b => b.trim().length > 2 && b.includes("id:"));
+        for (const rewardBlock of rewardBlocks) {
+          const rewardIdMatch = rewardBlock.match(/id:\s*"([^"]+)"/m);
+          const rewardId = rewardIdMatch?.[1];
+          const titleMatch = rewardBlock.match(/^\s*title:\s*"([^"]+)"/m);
+          if (titleMatch && rewardId && questId) {
+            mapeamentos[
+              `${abbreviation}.quests.${chapterFolder}.snbt.${chapterId}.quest.${questId}.rewards.${rewardId}.title`
+            ] = decodeUnicode(titleMatch[1]);
+          }
+          // description em reward
+          const descMatch = rewardBlock.match(/description:\s*\[([\s\S]*?)\]/m);
+          if (descMatch && rewardId && questId) {
+            const descs = [];
+            const descRegex = /"(.*?)"/g;
+            let dm;
+            while ((dm = descRegex.exec(descMatch[1])) !== null) {
+              if (dm[1].trim() !== "")
+                descs.push(decodeUnicode(dm[1]));
+            }
+            if (descs.length) {
+              mapeamentos[
+                `${abbreviation}.quests.${chapterFolder}.snbt.${chapterId}.quest.${questId}.rewards.${rewardId}.desc`
+              ] = descs.join("\\n");
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Por enquanto mantenha o conteúdo modificado igual ao original
+  return { conteudoModificado: conteudo, mapeamentos };
 }
 
 // Substituir apenas esta função:
