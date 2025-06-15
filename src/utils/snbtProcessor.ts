@@ -264,11 +264,7 @@ function salvarMapeamentos(
     // Exemplo: c.quests.the_nether.snbt.46D0AAEEB69E28B3.title
     // regex: prefix.quests.chapter.snbt.fileId.field[.idx]
     const questMatch = key.match(/^([^.]+)\.quests\.([^.]+)\.snbt\.([^.]+)\.([^.]+)\.?(\d*)$/);
-    if (!questMatch) {
-      // LOG para depuração
-      console.log("[parseKey] Ignorando chave fora do padrão:", key);
-      return null;
-    }
+    if (!questMatch) return null;
     // c, the_nether, 46D0AAEEB69E28B3, campo (title...), idx
     return {
       prefix: questMatch[1],
@@ -281,11 +277,16 @@ function salvarMapeamentos(
 
   // Agrupa por quest id
   const questsGrouped: Record<string, Record<string, string>> = {};
+  const extraKeys: Record<string, string> = {}; // chaves fora do padrão quest
 
   for (const [filePath, mappings] of allMapeamentos) {
     for (const key of Object.keys(mappings)) {
       const parsed = parseKey(key);
-      if (!parsed) continue;
+      if (!parsed) {
+        // Inclui chave "extra" sem agrupar
+        extraKeys[key] = mappings[key];
+        continue;
+      }
       // Chave identificadora única para cada quest
       const questKey = `${parsed.prefix}.quests.${parsed.chapter}.snbt.${parsed.fileId}`;
       if (!questsGrouped[questKey]) questsGrouped[questKey] = {};
@@ -307,10 +308,10 @@ function salvarMapeamentos(
     "reward1", "reward2", "reward3", "reward4", "reward5"
   ];
 
-  // Monta o JSON final na ordem
+  // Monta o JSON final agrupado e ordenado por quest
   for (const questKey of Object.keys(questsGrouped)) {
     const fields = questsGrouped[questKey];
-    // Garante title/subtitle primeiro, depois descN, depois taskN, depois rewardN, depois os que sobrarem
+    // Garante ordem desejada
     const orderedFields = Object.keys(fields).sort((a, b) => {
       const ia = fieldOrder.indexOf(a);
       const ib = fieldOrder.indexOf(b);
@@ -323,6 +324,11 @@ function salvarMapeamentos(
       const fullKey = `${questKey}.${field}`;
       finalJson[fullKey] = fields[field];
     }
+  }
+
+  // Adiciona as chaves extras (como chapter_groups, data geral do modpack, etc)
+  for (const key in extraKeys) {
+    finalJson[key] = extraKeys[key];
   }
 
   const jsonLines = JSON.stringify(finalJson, null, 2) + "\n";
