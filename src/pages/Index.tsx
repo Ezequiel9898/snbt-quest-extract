@@ -135,8 +135,9 @@ const Index = () => {
             <DownloadPanel outputZipBlob={outputZipBlob} jsonPreview={jsonPreview} />
           </div>
         </div>
-        <footer className="mt-12 pt-8 border-t text-xs text-muted-foreground text-center">
-          <div>
+        <footer className="mt-12 pt-8 border-t text-xs text-muted-foreground flex items-center justify-center text-center">
+          <BookOpen className="mr-2 text-primary" size={18} />
+          <div className="flex flex-col items-center">
             <span>
               Feito com <span className="text-red-600">♥</span> para modders brasileiros. | <a href="https://github.com/shirakumo/snbt-i18npy" className="underline" target="_blank" rel="noopener noreferrer">Python original</a>
             </span>
