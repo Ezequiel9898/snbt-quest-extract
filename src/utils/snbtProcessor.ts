@@ -1,4 +1,3 @@
-
 import JSZip from "jszip";
 
 export type ProcessResult = {
@@ -175,7 +174,7 @@ function processarConteudo(
         conteudoModificado.push(linha);
         continue;
       }
-      const matchDesc = linha.match(/^(\s*)"((?:[^"\\]|\\.)*)"\s*$/);
+      const matchDesc = linha.match(/^(\s*)"((?:[^"\\\\]|\\\\.)*)"\s*$/);
       if (matchDesc) {
         const indent = matchDesc[1];
         const valorOriginal = matchDesc[2];
@@ -251,38 +250,79 @@ function processarConteudo(
   return { conteudoModificado: conteudoModificado.join("\n"), mapeamentos };
 }
 
-// Transcriado do salvar_mapeamentos
+// Substituir apenas esta função:
 function salvarMapeamentos(
   allMapeamentos: [string, Record<string, string>][],
   abbreviation: string,
   outputZip: JSZip
 ): string {
   const caminhoJson = `output/en_us.json`;
-  const modpackEntries: Record<string, string> = {};
-  const otherGroups: [string, Record<string, string>][] = [];
-  const rewardGroups: Record<string, string>[] = [];
+  const finalJson: Record<string, string> = {};
+
+  // Função para padronizar chave por quest
+  function parseKey(key: string) {
+    // Exemplo: c.quests.ciscos_dread_knight.snbt.ciscos_dread_knight.title
+    const questMatch = key.match(/^([^.]+)\.quests\.([^.]+)\.([^.]+)\.([^.]+)\.?(\d*)$/);
+    if (!questMatch) return null;
+    // c, ciscos_dread_knight, ciscos_dread_knight, campo (title...), idx
+    return {
+      prefix: questMatch[1],
+      chapter: questMatch[2],
+      fileId: questMatch[3],
+      field: questMatch[4],
+      idx: questMatch[5] || ""
+    };
+  }
+
+  // Agrupa por quest id
+  const questsGrouped: Record<string, Record<string, string>> = {};
 
   for (const [filePath, mappings] of allMapeamentos) {
     for (const key of Object.keys(mappings)) {
-      if (key.startsWith(`${abbreviation}.modpack.`)) {
-        modpackEntries[key] = mappings[key];
-        delete mappings[key];
-      }
+      const parsed = parseKey(key);
+      if (!parsed) continue;
+      // Chave identificadora única para cada quest
+      const questKey = `${parsed.prefix}.quests.${parsed.chapter}.snbt.${parsed.fileId}`;
+      if (!questsGrouped[questKey]) questsGrouped[questKey] = {};
+      let fieldName = parsed.field;
+      if (fieldName.startsWith("desc")) fieldName = "desc" + (parsed.idx || "");
+      if (fieldName.startsWith("task")) fieldName = "task" + (parsed.idx || "");
+      if (fieldName.startsWith("reward")) fieldName = "reward" + (parsed.idx || "");
+      if (parsed.field === "title" || parsed.field === "subtitle")
+        questsGrouped[questKey][fieldName] = mappings[key];
+      else
+        questsGrouped[questKey][fieldName] = mappings[key];
     }
-    if (!Object.keys(mappings).length) continue;
-
-    if (filePath.split("/").includes("reward_tables")) rewardGroups.push(mappings);
-    else otherGroups.push([filePath, mappings]);
   }
 
-  const json: Record<string, string> = {};
-  Object.assign(json, modpackEntries);
-  for (const [, map] of otherGroups) Object.assign(json, map);
-  for (const rew of rewardGroups) Object.assign(json, rew);
+  // Ordena as chaves internas conforme especificação do usuário
+  const fieldOrder = [
+    "title",
+    "subtitle",
+    "desc1", "desc2", "desc3", "desc4", "desc5",
+    "task1", "task2", "task3", "task4", "task5",
+    "reward1", "reward2", "reward3", "reward4", "reward5"
+  ];
+  // Monta o JSON final na ordem
+  for (const questKey of Object.keys(questsGrouped)) {
+    const fields = questsGrouped[questKey];
+    // Garante title/subtitle primeiro, depois descN, depois taskN, depois rewardN, depois os que sobrarem
+    const orderedFields = Object.keys(fields).sort((a, b) => {
+      const ia = fieldOrder.indexOf(a);
+      const ib = fieldOrder.indexOf(b);
+      if (ia === -1 && ib === -1) return a.localeCompare(b);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+    for (const field of orderedFields) {
+      const fullKey = `${questKey}.${field}`;
+      finalJson[fullKey] = fields[field];
+    }
+  }
 
-  const jsonLines = JSON.stringify(json, null, 2) + "\n";
+  const jsonLines = JSON.stringify(finalJson, null, 2) + "\n";
   outputZip.file(caminhoJson, jsonLines);
-
   return jsonLines;
 }
 
@@ -295,4 +335,3 @@ function decodeUnicode(valor: string): string {
     return valor;
   }
 }
-
