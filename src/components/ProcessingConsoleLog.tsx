@@ -1,4 +1,8 @@
+
 import React from "react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { TerminalSquare, Check, X } from "lucide-react";
 
 export interface ProcessingConsoleLogProps {
@@ -44,16 +48,23 @@ export const ProcessingConsoleLog: React.FC<ProcessingConsoleLogProps> = ({ logL
   }
 
   return (
-    <div className="w-full mt-4 mb-6 bg-zinc-900 dark:bg-zinc-800 border border-zinc-700 rounded-xl shadow-2xl p-0 overflow-hidden font-mono">
-      <div className="flex items-center gap-2 p-3 border-b border-zinc-800 bg-zinc-950 dark:bg-zinc-800 select-none">
-        <TerminalSquare className="text-primary animate-pulse" size={20} />
-        <span className="font-mono font-semibold text-sm tracking-widest text-primary/80">Log de Processamento</span>
+    <Card className="w-full mt-6 mb-2 p-0 bg-card shadow-2xl rounded-xl border-2 border-muted/80 overflow-hidden transition hover:shadow-2xl hover:border-primary/50">
+      <div className="flex items-center gap-2 p-5 pb-2 border-b bg-card rounded-t-xl">
+        <TerminalSquare className="text-primary mr-1" size={22} />
+        <span className="font-extrabold text-lg tracking-tight text-primary">Log de Processamento</span>
+        <Badge variant="outline" className="ml-auto text-primary bg-primary/10 border-primary/30 text-xs font-bold px-2 py-1">
+          {logLines.length}
+        </Badge>
       </div>
-      <div className="px-4 py-3 space-y-2 max-h-64 overflow-y-auto scrollbar-none text-xs bg-zinc-950/40 dark:bg-zinc-900/60 select-text">
-        {logLines.map((line, idx) => (
-          <div key={idx}>{styleLine(line)}</div>
-        ))}
-      </div>
-    </div>
+      <ScrollArea className="h-[300px] w-full">
+        <div className="px-3 pt-5 pb-5 w-full md:w-[92%] mx-auto bg-background border border-muted/40 rounded-xl shadow-inner">
+          <div className="space-y-2 font-mono text-xs">
+            {logLines.map((line, idx) => (
+              <div key={idx}>{styleLine(line)}</div>
+            ))}
+          </div>
+        </div>
+      </ScrollArea>
+    </Card>
   );
 };

@@ -76,24 +76,11 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
                     }}
                   >
                     {openIndex === i && (
-                      <div className="relative">
-                        <pre
-                          className="whitespace-pre-wrap break-words text-xs rounded bg-muted p-3 mt-1 border border-muted/40 font-mono leading-snug overflow-hidden"
-                          style={{ maxHeight: "300px" }}
-                        >
+                      <ScrollArea className="h-72 w-full mt-1">
+                        <pre className="whitespace-pre-wrap break-words text-xs rounded bg-muted p-3 border border-muted/40 font-mono leading-snug">
                           {q}
                         </pre>
-                        <div
-                          className="pointer-events-none absolute bottom-0 left-0 w-full h-8"
-                          style={{
-                            background:
-                              "linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(230,230,245,0.19) 80%,rgba(230,230,245,0.82) 100%)",
-                            borderBottomLeftRadius: 8,
-                            borderBottomRightRadius: 8,
-                            display: q.length > 340 ? "block" : "none"
-                          }}
-                        />
-                      </div>
+                      </ScrollArea>
                     )}
                   </div>
                 </div>
