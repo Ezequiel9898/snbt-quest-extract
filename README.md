@@ -1,73 +1,126 @@
-# Welcome to your Lovable project
 
-## Project info
+# FTB Quests Tradutor Automático
 
-**URL**: https://lovable.dev/projects/92cdf4d4-2d7c-4320-833b-09c8735d18ad
+[English below | English section below after Portuguese]
 
-## How can I edit this code?
+## 🌎 Português (BR)
 
-There are several ways of editing your application.
+Este projeto é uma ferramenta web para extrair e automatizar textos de tradução de arquivos `.snbt` do FTB Quests modpacks. Você pode usar diretamente em [lovable.dev](https://lovable.dev/projects/92cdf4d4-2d7c-4320-833b-09c8735d18ad) ou hospedar por conta própria.
 
-**Use Lovable**
+### 🚀 Deploy no GitHub Pages
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/92cdf4d4-2d7c-4320-833b-09c8735d18ad) and start prompting.
+Você pode hospedar este site no seu próprio GitHub Pages (`usuario.github.io/repositorio/`). Siga os passos:
 
-Changes made via Lovable will be committed automatically to this repo.
+1. Faça um fork deste repositório ou clone para sua conta:
+   ```sh
+   git clone <URL_DO_SEU_REPO>
+   cd <nome-do-repo>
+   ```
 
-**Use your preferred IDE**
+2. Instale as dependências
+   ```sh
+   npm install
+   ```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+3. Configure o `vite.config.ts` para definir o campo `base` para o seu repositório (ex: `/meurepo/`)
+   ```typescript
+   // vite.config.ts
+   export default defineConfig({
+     // ...
+     base: '/NOME-DO-SEU-REPO/', // <= troque pelo nome do repo!
+     // ...
+   });
+   ```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+4. Faça o build do projeto:
+   ```sh
+   npm run build
+   ```
 
-Follow these steps:
+5. Faça deploy enviando o conteúdo da pasta `dist/` para o branch `gh-pages`:
+   ```sh
+   npm install -g gh-pages
+   gh-pages -d dist
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+6. Ative o GitHub Pages nas configurações do repositório (escolha a branch `gh-pages`).
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Seu site estará disponível em `https://SEU_USUARIO.github.io/NOME-DO-SEU-REPO/`!
 
-# Step 3: Install the necessary dependencies.
-npm i
+### ✨ Funcionalidades
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+- Processamento de arquivos `.zip` e `.snbt` do FTB Quests totalmente no navegador
+- Extração automática dos textos e geração de arquivo `en_us.json` para facilitar tradução
+- Nenhum upload para servidores: totalmente privado e seguro
+- UI responsiva usando React, TailwindCSS, shadcn/ui
+- Download dos arquivos processados em `.zip` e `.json`
+- Interface adaptada para comunidade brasileira
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+# 🇺🇸 English
 
-**Use GitHub Codespaces**
+This project is a web tool to extract and automate translation mapping for FTB Quests modpacks `.snbt` files. You can use it at [lovable.dev](https://lovable.dev/projects/92cdf4d4-2d7c-4320-833b-09c8735d18ad) or host your own copy.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🚀 Deploy on GitHub Pages
 
-## What technologies are used for this project?
+You can host this site as a static web app on your own GitHub Pages (`yourusername.github.io/repo/`). Instructions:
 
-This project is built with:
+1. Fork or clone this repository:
+   ```sh
+   git clone <YOUR_REPO_URL>
+   cd <your-repo-name>
+   ```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+2. Install the dependencies
+   ```sh
+   npm install
+   ```
 
-## How can I deploy this project?
+3. Set `base` in `vite.config.ts` to match your repo name (e.g., `/myrepo/`):
+   ```typescript
+   // vite.config.ts
+   export default defineConfig({
+     // ...
+     base: '/YOUR-REPO-NAME/', // <= change to your repo
+     // ...
+   });
+   ```
 
-Simply open [Lovable](https://lovable.dev/projects/92cdf4d4-2d7c-4320-833b-09c8735d18ad) and click on Share -> Publish.
+4. Build the project:
+   ```sh
+   npm run build
+   ```
 
-## Can I connect a custom domain to my Lovable project?
+5. Deploy the contents of the `dist/` folder to the `gh-pages` branch:
+   ```sh
+   npm install -g gh-pages
+   gh-pages -d dist
+   ```
 
-Yes, you can!
+6. Enable GitHub Pages in your repo settings (`gh-pages` branch).
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Your site will be at `https://YOUR_USERNAME.github.io/YOUR-REPO-NAME/`!
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## ✨ Features
+
+- Process `.zip` and `.snbt` FTB Quests files fully offline, in your browser
+- Automatically extract quest texts and generate `en_us.json` for translation
+- 100% local privacy: no files are uploaded anywhere
+- Responsive UI using React, TailwindCSS, shadcn/ui
+- Download processed `.zip` and `.json` files
+- Interface customized for the Brazilian modder community
+
+---
+
+## 📄 Licença | License
+
+MIT
+
+---
+
+## 💻 Desenvolvimento | Development
+
+Vite + React + TypeScript + Tailwind CSS + shadcn/ui  
+Veja/csee: [https://lovable.dev/projects/92cdf4d4-2d7c-4320-833b-09c8735d18ad](https://lovable.dev/projects/92cdf4d4-2d7c-4320-833b-09c8735d18ad)
+
