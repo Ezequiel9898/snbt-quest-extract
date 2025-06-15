@@ -3,7 +3,11 @@ import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Info, BookOpen, ArrowDown, ArrowUp } from "lucide-react";
+import { Info, BookOpen, ArrowDown, ArrowUp, FileText } from "lucide-react";
+
+// Custom scrollbar classes for 10px (approx) width
+const customScrollbar =
+  "scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent scrollbar-thin [&::-webkit-scrollbar]:w-[10px] [&::-webkit-scrollbar-thumb]:rounded-md";
 
 interface QuestListProps {
   quests: string[];
@@ -33,7 +37,9 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
           {quests.length}
         </Badge>
       </div>
-      <ScrollArea className="max-h-72 px-2 py-2 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent">
+      <ScrollArea
+        className={`max-h-72 px-2 py-2 overflow-y-auto ${customScrollbar}`}
+      >
         <ul className="space-y-2">
           {quests.map((q, i) => (
             <li
@@ -43,7 +49,7 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
               <div className="p-2">
                 <button
                   type="button"
-                  className="flex w-full items-center cursor-pointer text-sm font-semibold gap-2 group-hover:text-primary transition-colors outline-none"
+                  className="flex w-full items-center text-sm font-semibold gap-2 group-hover:text-primary transition-colors outline-none"
                   aria-expanded={openIndex === i}
                   aria-controls={`quest-panel-${i}`}
                   onClick={() => toggleQuest(i)}
@@ -74,7 +80,9 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
                   }}
                 >
                   {openIndex === i && (
-                    <pre className="whitespace-pre-wrap break-words text-xs rounded bg-muted/80 p-2 mt-1 border max-h-40 overflow-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent">
+                    <pre
+                      className={`whitespace-pre-wrap break-words text-xs rounded bg-muted/80 p-2 mt-1 border max-h-40 overflow-auto ${customScrollbar}`}
+                    >
                       {q}
                     </pre>
                   )}
