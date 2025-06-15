@@ -338,8 +338,9 @@ function salvarMapeamentos(
     };
   }
 
-  // Agrupa por quest id
+  // Agrupa por quest id na ordem de mapeamento original
   const questsGrouped: Record<string, Record<string, string>> = {};
+  const questOrder: string[] = [];
   const extraKeys: Record<string, string> = {}; // chaves fora do padrão quest
 
   for (const [filePath, mappings] of allMapeamentos) {
@@ -352,7 +353,10 @@ function salvarMapeamentos(
       }
       // Chave identificadora única para cada quest
       const questKey = `${parsed.prefix}.quests.${parsed.chapter}.snbt.${parsed.fileId}`;
-      if (!questsGrouped[questKey]) questsGrouped[questKey] = {};
+      if (!questsGrouped[questKey]) {
+        questsGrouped[questKey] = {};
+        questOrder.push(questKey);
+      }
       let fieldName = parsed.field;
       // Normaliza nomes de campo para ordem
       if (fieldName.startsWith("desc")) fieldName = "desc" + (parsed.idx || "");
@@ -371,10 +375,10 @@ function salvarMapeamentos(
     "reward1", "reward2", "reward3", "reward4", "reward5"
   ];
 
-  // Monta o JSON final agrupado e ordenado por quest
-  for (const questKey of Object.keys(questsGrouped)) {
+  // Monta o JSON final agrupado e ordenado por quest na ordem de aparição
+  for (const questKey of questOrder) {
     const fields = questsGrouped[questKey];
-    // Garante ordem desejada
+    // Garante ordem desejada dos campos
     const orderedFields = Object.keys(fields).sort((a, b) => {
       const ia = fieldOrder.indexOf(a);
       const ib = fieldOrder.indexOf(b);
