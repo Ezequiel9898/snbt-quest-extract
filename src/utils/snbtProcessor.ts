@@ -151,6 +151,8 @@ function processarConteudo(
       for (const valor of descricao) {
         const chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
         mapeamentos[chave] = decodeUnicode(valor);
+        // LOG AQÚI:
+        console.log(`[DEBUG] Mapping (descInline)`, chave, '=>', mapeamentos[chave]);
         novasLinhas.push(`${indent}  "{${chave}}"`);
         questDescCounter += 1;
       }
@@ -180,6 +182,8 @@ function processarConteudo(
         const valorOriginal = matchDesc[2];
         const chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
         mapeamentos[chave] = decodeUnicode(valorOriginal);
+        // LOG AQÚI:
+        console.log(`[DEBUG] Mapping (descBlock)`, chave, '=>', mapeamentos[chave]);
         descLinhasTemp.push(`${indent}"{${chave}}"`);
         questDescCounter += 1;
         continue;
@@ -193,6 +197,8 @@ function processarConteudo(
       const novaLinha = linha.replace(/title:\s*"((?:[^"\\]|\\.)*)"/g, (_match, val) => {
         const chave = `${abbreviation}.chapter_groups.title${chapterGroupTitleCounter++}`;
         mapeamentos[chave] = decodeUnicode(val);
+        // LOG AQÚI:
+        console.log(`[DEBUG] Mapping (chapter_groups)`, chave, '=>', mapeamentos[chave]);
         return `title: "{${chave}}"`;
       });
       conteudoModificado.push(novaLinha);
@@ -208,17 +214,21 @@ function processarConteudo(
       if (contextoAtual === "rewards") {
         const chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.reward${rewardTitleCounter++}`;
         mapeamentos[chave] = decoded;
+        // LOG AQÚI:
+        console.log(`[DEBUG] Mapping (reward)`, chave, '=>', decoded);
         conteudoModificado.push(`${indent}title: "{${chave}}"`);
         continue;
       } else if (contextoAtual === "tasks") {
         const chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.task${taskTitleCounter++}`;
         mapeamentos[chave] = decoded;
+        // LOG AQÚI:
+        console.log(`[DEBUG] Mapping (task)`, chave, '=>', decoded);
         conteudoModificado.push(`${indent}title: "{${chave}}"`);
         continue;
       }
     }
 
-    // title/subtitle (procurando por "{ftbquests." já processado)
+    // title/subtitle
     let modified = false;
     for (const tipo of ["title", "subtitle"]) {
       const matchX = linha.match(new RegExp(`^(\\s*)${tipo}:\\s*"((?:[^"\\\\]|\\\\.)*)"`));
@@ -239,6 +249,8 @@ function processarConteudo(
           else questSubtitleCounter += 1;
         } else break;
         mapeamentos[chave] = decodeUnicode(valor);
+        // LOG AQÚI:
+        console.log(`[DEBUG] Mapping (${tipo})`, chave, '=>', mapeamentos[chave]);
         conteudoModificado.push(`${indent}${tipo}: "{${chave}}"`);
         modified = true;
         break;
@@ -246,6 +258,8 @@ function processarConteudo(
     }
     if (!modified) conteudoModificado.push(linha);
   }
+
+  console.log(`[DEBUG] Mapping count for ${caminhoRel}:`, Object.keys(mapeamentos).length);
 
   return { conteudoModificado: conteudoModificado.join("\n"), mapeamentos };
 }
@@ -331,7 +345,13 @@ function salvarMapeamentos(
     finalJson[key] = extraKeys[key];
   }
 
+  // LOG total de mapeamentos para cada arquivo
+  for(const [filePath, mappings] of allMapeamentos) {
+    console.log(`[DEBUG] Mappings from file ${filePath}:`, Object.keys(mappings).length, Object.keys(mappings));
+  }
+
   const jsonLines = JSON.stringify(finalJson, null, 2) + "\n";
+  console.log(`[DEBUG] Chaves finais no JSON:`, Object.keys(finalJson).length, Object.keys(finalJson));
   outputZip.file(caminhoJson, jsonLines);
   return jsonLines;
 }
