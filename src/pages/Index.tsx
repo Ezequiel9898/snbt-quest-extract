@@ -1,5 +1,3 @@
-// Página principal para o site de tradução automática de FTB Quests e mapeamento SNBT -> JSON
-
 import React from "react";
 import { FileDropZone } from "@/components/FileDropZone";
 import { ProcessingLog } from "@/components/ProcessingLog";
@@ -10,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { extractQuestsFromSnbt } from "@/utils/extractQuestsFromSnbt";
 import { QuestList } from "@/components/QuestList";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Info, ArrowDown, ArrowUp, Check, FileDown } from "lucide-react";
+import { BookOpen, Info, ArrowDown, ArrowUp, Check, FileDown, FileText } from "lucide-react";
 
 const Index = () => {
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
@@ -124,46 +122,7 @@ const Index = () => {
                 <span className="font-semibold text-lg">Como funciona?</span>
               </div>
               <div className="p-4 pt-2 space-y-3">
-                <div className="flex flex-col gap-3">
-                  <Step
-                    icon={<ArrowDown size={18} className="text-blue-500 animate-bounce" />}
-                    text={
-                      <>Arraste aqui o arquivo <span className="font-mono font-semibold">modpack.zip</span> (ou exporte via CurseForge).</>
-                    }
-                  />
-                  <Step
-                    icon={<Check size={18} className="text-green-600 dark:text-green-400 animate-fade-in" />}
-                    text={
-                      <>
-                        O site extrai todos os textos legíveis dos arquivos <b>.snbt</b> dentro de <span className="font-mono">config/ftbquests/quests</span>.
-                      </>
-                    }
-                  />
-                  <Step
-                    icon={<ArrowUp size={18} className="text-primary animate-fade-in" />}
-                    text={
-                      <>
-                        Os textos são convertidos em chaves de tradução como <code>ptnq.quests.intro.welcome.title</code> e substituídos nos arquivos.
-                      </>
-                    }
-                  />
-                  <Step
-                    icon={<BookOpen size={18} className="text-secondary animate-fade-in" />}
-                    text={
-                      <>
-                        Todas as traduções extraídas são salvas em <span className="font-mono">output/en_us.json</span>&nbsp;para facilitar tradução futura.
-                      </>
-                    }
-                  />
-                  <Step
-                    icon={<FileDown size={18} className="text-muted-foreground animate-fade-in" />}
-                    text={
-                      <>
-                        Por fim, você pode baixar os arquivos .snbt processados e o JSON para uso no modpack.
-                      </>
-                    }
-                  />
-                </div>
+                <ComoFuncionaSteps />
                 <ul className="list-disc list-inside text-xs text-muted-foreground mt-2 pl-1 space-y-1">
                   <li>Compatível com modpacks FTB modernos.</li>
                   <li>Todo o processamento é feito no seu navegador: <b>seu arquivo NÃO é enviado para a internet</b>.</li>
@@ -186,14 +145,58 @@ const Index = () => {
   );
 };
 
-// Novo componente para melhor visual dos passos
-function Step({ icon, text }: { icon: React.ReactNode; text: React.ReactNode }) {
+function Step({ icon, text, className }: { icon: React.ReactNode; text: React.ReactNode; className?: string }) {
   return (
-    <div className="flex items-start gap-3 bg-muted/60 rounded px-3 py-2 shadow group hover:scale-105 transition-transform">
+    <div className={`flex items-start gap-3 bg-muted/60 rounded px-3 py-2 shadow group hover:scale-105 transition-transform cursor-pointer ${className ?? ""}`}>
       <div className="mt-1">{icon}</div>
       <span className="text-sm">{text}</span>
     </div>
   );
 }
+
+const ComoFuncionaSteps = () => (
+  <div className="flex flex-col gap-3">
+    <Step
+      icon={<ArrowDown size={18} className="text-blue-500 animate-bounce" />}
+      text={
+        <>
+          Arraste aqui o arquivo <span className="font-mono font-semibold">modpack.zip</span> (ou exporte via CurseForge).
+        </>
+      }
+    />
+    <Step
+      icon={<Check size={18} className="text-green-600 dark:text-green-400 animate-fade-in" />}
+      text={
+        <>
+          O site extrai todos os textos legíveis dos arquivos <b>.snbt</b> dentro de <span className="font-mono">config/ftbquests/quests</span>.
+        </>
+      }
+    />
+    <Step
+      icon={<ArrowUp size={18} className="text-primary animate-fade-in" />}
+      text={
+        <>
+          Os textos são convertidos em chaves de tradução como <code>ptnq.quests.intro.welcome.title</code> e substituídos nos arquivos.
+        </>
+      }
+    />
+    <Step
+      icon={<FileText size={18} className="text-secondary animate-fade-in" />}
+      text={
+        <>
+          Todas as traduções extraídas são salvas em <span className="font-mono">output/en_us.json</span> para facilitar tradução futura.
+        </>
+      }
+    />
+    <Step
+      icon={<FileDown size={18} className="text-muted-foreground animate-fade-in" />}
+      text={
+        <>
+          Por fim, você pode baixar os arquivos .snbt processados e o JSON para uso no modpack.
+        </>
+      }
+    />
+  </div>
+);
 
 export default Index;
