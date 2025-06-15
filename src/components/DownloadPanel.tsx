@@ -1,7 +1,10 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Download, FileText } from "lucide-react";
 
 interface DownloadPanelProps {
   outputZipBlob: Blob | null;
@@ -19,10 +22,21 @@ export const DownloadPanel: React.FC<DownloadPanelProps> = ({ outputZipBlob, jso
           <Download className="mr-1" /> Baixar arquivos traduzidos (.zip)
         </a>
       </Button>
-      <details className="w-full max-w-xl bg-card border rounded text-xs p-3 mt-0 select-text" style={{maxHeight:220, overflow:"auto"}}>
-        <summary className="cursor-pointer font-semibold">Prévia do <code>en_us.json</code></summary>
-        <pre className="text-xs font-mono whitespace-pre-wrap">{jsonPreview}</pre>
-      </details>
+      
+      <Card className="w-full mt-6 mb-2 p-0 bg-card shadow-2xl rounded-xl border-2 border-muted/80 overflow-hidden transition hover:shadow-2xl hover:border-primary/50">
+        <div className="flex items-center gap-2 p-5 pb-2 border-b bg-card rounded-t-xl">
+          <FileText className="text-primary mr-1" size={22} />
+          <span className="font-extrabold text-lg tracking-tight text-primary">Prévia do en_us.json</span>
+          <Badge variant="outline" className="ml-auto text-primary bg-primary/10 border-primary/30 text-xs font-bold px-2 py-1">
+            {jsonPreview.length} chars
+          </Badge>
+        </div>
+        <ScrollArea className="h-[300px] w-full">
+          <div className="px-3 pt-5 pb-5 w-full md:w-[92%] mx-auto bg-background border border-muted/40 rounded-xl shadow-inner">
+            <pre className="text-xs font-mono whitespace-pre-wrap">{jsonPreview}</pre>
+          </div>
+        </ScrollArea>
+      </Card>
     </div>
   );
 };
