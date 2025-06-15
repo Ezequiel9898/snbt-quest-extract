@@ -10,6 +10,7 @@ import { QuestList } from "@/components/QuestList";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Info, ArrowDown, ArrowUp, Check, FileDown, FileText } from "lucide-react";
 import { ProcessingConsoleLog } from "@/components/ProcessingConsoleLog";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Index = () => {
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
@@ -99,6 +100,7 @@ const Index = () => {
   // Layout principal, desktop-first, design limpo e sofisticado, largura máxima, sem sidebar.
   return (
     <div className="min-h-screen w-full bg-background flex flex-col items-center justify-start py-12 px-4 md:px-10">
+      <ThemeToggle />
       <div className="w-full max-w-5xl space-y-7 md:space-y-10">
         <header className="flex flex-col items-center justify-center gap-3 mb-4">
           <h1 className="text-4xl md:text-5xl font-black flex items-center gap-2 tracking-tighter">
@@ -136,11 +138,13 @@ const Index = () => {
           </div>
         </div>
         <footer className="mt-12 pt-8 border-t text-xs text-muted-foreground flex items-center justify-center text-center">
-          <BookOpen className="mr-2 text-primary" size={18} />
           <div className="flex flex-col items-center">
-            <span>
-              Feito com <span className="text-red-600">♥</span> para modders brasileiros. | <a href="https://github.com/shirakumo/snbt-i18npy" className="underline" target="_blank" rel="noopener noreferrer">Python original</a>
-            </span>
+            <div className="flex items-center">
+              <BookOpen className="mr-2 text-primary" size={18} />
+              <span>
+                Feito com <span className="text-red-600">♥</span> para modders brasileiros. | <a href="https://github.com/shirakumo/snbt-i18npy" className="underline" target="_blank" rel="noopener noreferrer">Python original</a>
+              </span>
+            </div>
           </div>
         </footer>
       </div>
