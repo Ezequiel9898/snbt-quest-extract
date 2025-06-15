@@ -122,27 +122,56 @@ function processarConteudo(
   let dentroDeDescription = false;
   let descLinhasTemp: string[] = [];
   let contextoAtual: "tasks" | "rewards" | null = null;
-  let questRootTitle: null | { idx: number, line: string, indent: string, val: string } = null;
+  let currentTaskOrRewardId: string | null = null;
+  let insideTaskOrReward: boolean = false;
 
   for (let i = 0; i < linhas.length; ++i) {
     const linha = linhas[i];
     const stripped = linha.trim();
 
-    // context
-    if (stripped.startsWith("tasks: [")) contextoAtual = "tasks";
-    else if (stripped.startsWith("rewards: [")) contextoAtual = "rewards";
-    else if (stripped.startsWith("]")) contextoAtual = null;
+    // Detecta contexto de tasks/rewards
+    if (stripped.startsWith("tasks: [")) {
+      contextoAtual = "tasks";
+      insideTaskOrReward = false;
+      currentTaskOrRewardId = null;
+    } else if (stripped.startsWith("rewards: [")) {
+      contextoAtual = "rewards";
+      insideTaskOrReward = false;
+      currentTaskOrRewardId = null;
+    } else if (stripped === "]") {
+      contextoAtual = null;
+      insideTaskOrReward = false;
+      currentTaskOrRewardId = null;
+    }
 
-    // braces
-    const openBraces = (linha.match(/{/g) || []).length + (linha.match(/\[/g) || []).length;
-    const closeBraces = (linha.match(/}/g) || []).length + (linha.match(/]/g) || []).length;
-    braceDepth += openBraces - closeBraces;
+    // Detecta início/fim de objeto task/reward (baseado em { })
+    if (contextoAtual && stripped === "{") {
+      insideTaskOrReward = true;
+      currentTaskOrRewardId = null;
+      conteudoModificado.push(linha);
+      continue;
+    }
+    if (contextoAtual && stripped === "},") {
+      insideTaskOrReward = false;
+      currentTaskOrRewardId = null;
+      conteudoModificado.push(linha);
+      continue;
+    }
+    // Detecta id da task/reward
+    if (insideTaskOrReward && stripped.startsWith("id:")) {
+      // Exemplo: id: "xxxxx"
+      const matchTaskId = stripped.match(/^id:\s*"([^"]+)"/);
+      if (matchTaskId) {
+        currentTaskOrRewardId = matchTaskId[1];
+      }
+      conteudoModificado.push(linha);
+      continue;
+    }
 
     // description: [ ... ] inline
     const descInlineMatch = linha.match(/^\s*description:\s*\[(.*?)\]\s*$/);
     if (descInlineMatch) {
       const indent = linha.match(/^(\s*)/)![1];
-      // pega todos os valores entre aspas
       const descricao = [];
       const regex = /"((?:[^"\\]|\\.)*)"/g;
       let matchQ;
@@ -151,12 +180,16 @@ function processarConteudo(
       }
       const novasLinhas = [`${indent}description: [`];
       for (const valor of descricao) {
-        const chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
+        let chave;
+        if (contextoAtual && insideTaskOrReward && currentTaskOrRewardId) {
+          chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.${contextoAtual}.${currentTaskOrRewardId}.desc`;
+        } else {
+          chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
+          questDescCounter += 1;
+        }
         mapeamentos[chave] = decodeUnicode(valor);
-        // LOG AQÚI:
         console.log(`[DEBUG] Mapping (descInline)`, chave, '=>', mapeamentos[chave]);
         novasLinhas.push(`${indent}  "{${chave}}"`);
-        questDescCounter += 1;
       }
       novasLinhas.push(`${indent}]`);
       conteudoModificado.push(...novasLinhas);
@@ -170,7 +203,6 @@ function processarConteudo(
       conteudoModificado.push(linha);
       continue;
     }
-
     if (dentroDeDescription) {
       if (linha.includes("]")) {
         dentroDeDescription = false;
@@ -182,47 +214,37 @@ function processarConteudo(
       if (matchDesc) {
         const indent = matchDesc[1];
         const valorOriginal = matchDesc[2];
-        const chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
+        let chave;
+        if (contextoAtual && insideTaskOrReward && currentTaskOrRewardId) {
+          chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.${contextoAtual}.${currentTaskOrRewardId}.desc`;
+        } else {
+          chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
+          questDescCounter += 1;
+        }
         mapeamentos[chave] = decodeUnicode(valorOriginal);
-        // LOG AQÚI:
         console.log(`[DEBUG] Mapping (descBlock)`, chave, '=>', mapeamentos[chave]);
         descLinhasTemp.push(`${indent}"{${chave}}"`);
-        questDescCounter += 1;
         continue;
       }
       descLinhasTemp.push(linha);
       continue;
     }
 
-    // chapter_groups.snbt
-    if (currentFilename === "chapter_groups.snbt") {
-      const novaLinha = linha.replace(/title:\s*"((?:[^"\\]|\\.)*)"/g, (_match, val) => {
-        const chave = `${abbreviation}.chapter_groups.title${chapterGroupTitleCounter++}`;
-        mapeamentos[chave] = decodeUnicode(val);
-        // LOG AQÚI:
-        console.log(`[DEBUG] Mapping (chapter_groups)`, chave, '=>', mapeamentos[chave]);
-        return `title: "{${chave}}"`;
-      });
-      conteudoModificado.push(novaLinha);
-      continue;
-    }
-
-    // ==> NOVA LÓGICA: Captura titles/subtitles de QUEST, TASKS, REWARDS
-
-    // titles e subtitles genéricos (quest root ou objetos root), exceto tasks/rewards
-    let modified = false;
+    // titles / subtitles: quest, task, reward
+    let handled = false;
     for (const tipo of ["title", "subtitle"]) {
       const matchX = linha.match(new RegExp(`^(\\s*)${tipo}:\\s*"((?:[^"\\\\]|\\\\.)*)"`));
       if (matchX) {
         const indent = matchX[1];
         const valor = matchX[2];
-        if (/\{ftbquests\./.test(valor)) break;
-
+        if (/\{ftbquests\./.test(valor)) break; // ignora já mapeadas
         let chave = "";
-        if (currentFilename === "data.snbt") {
+        if (contextoAtual && insideTaskOrReward && currentTaskOrRewardId) {
+          // Título de task ou reward
+          chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.${contextoAtual}.${currentTaskOrRewardId}.${tipo}`;
+        } else if (currentFilename === "data.snbt") {
           chave = `${abbreviation}.modpack.${tipo}`;
         } else if (chapterFolder && fileId && braceDepth <= 2) {
-          // QUANDO ESTIVER NO ROOT DE QUEST
           chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.${tipo}`;
         } else if (chapterFolder && fileId && braceDepth > 2) {
           const contador = tipo === "title" ? questTitleCounter : questSubtitleCounter;
@@ -231,59 +253,29 @@ function processarConteudo(
           else questSubtitleCounter += 1;
         } else break;
         mapeamentos[chave] = decodeUnicode(valor);
-        // LOG AQÚI:
         console.log(`[DEBUG] Mapping (${tipo})`, chave, '=>', mapeamentos[chave]);
         conteudoModificado.push(`${indent}${tipo}: "{${chave}}"`);
-        modified = true;
+        handled = true;
         break;
       }
     }
-    if (modified) continue;
+    if (handled) continue;
 
-    // TASKS E REWARDS
-    const matchTaskReward = linha.match(/^(\s*)title:\s*"((?:[^"\\]|\\.)*)"\s*$/);
-    if (matchTaskReward && contextoAtual) {
-      const indent = matchTaskReward[1];
-      const val = matchTaskReward[2];
-      const decoded = decodeUnicode(val);
-      let chave = "";
-      if (contextoAtual === "rewards") {
-        chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.reward${rewardTitleCounter++}`;
-        mapeamentos[chave] = decoded;
-        // LOG AQÚI:
-        console.log(`[DEBUG] Mapping (reward)`, chave, '=>', decoded);
-        conteudoModificado.push(`${indent}title: "{${chave}}"`);
-        continue;
-      } else if (contextoAtual === "tasks") {
-        chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.task${taskTitleCounter++}`;
-        mapeamentos[chave] = decoded;
-        // LOG AQÚI:
-        console.log(`[DEBUG] Mapping (task)`, chave, '=>', decoded);
-        conteudoModificado.push(`${indent}title: "{${chave}}"`);
-        continue;
-      }
-    }
-
-    // TITLES DIRETAMENTE EM CADA QUEST ROOT
-    if (!contextoAtual && linha.match(/^\s*title:\s*"(.*?)"/)) {
-      if (braceDepth === 2 && chapterFolder && fileId) {
-        // Estamos no início do objeto de quest (root)
-        const indent = linha.match(/^(\s*)/)![1];
-        const val = linha.match(/^\s*title:\s*"(.*?)"/)![1];
-        const chave = `${abbreviation}.quests.${chapterFolder}.${fileId}.title`;
+    // chapter_groups.snbt tratamento especial
+    if (currentFilename === "chapter_groups.snbt") {
+      const novaLinha = linha.replace(/title:\s*"((?:[^"\\]|\\.)*)"/g, (_match, val) => {
+        const chave = `${abbreviation}.chapter_groups.title${chapterGroupTitleCounter++}`;
         mapeamentos[chave] = decodeUnicode(val);
-        // LOG AQÚI:
-        console.log(`[DEBUG] Mapping (quest-root-title)`, chave, '=>', mapeamentos[chave]);
-        conteudoModificado.push(`${indent}title: "{${chave}}"`);
-        continue;
-      }
+        console.log(`[DEBUG] Mapping (chapter_groups)`, chave, '=>', mapeamentos[chave]);
+        return `title: "{${chave}}"`;
+      });
+      conteudoModificado.push(novaLinha);
+      continue;
     }
 
     conteudoModificado.push(linha);
   }
-
   console.log(`[DEBUG] Mapping count for ${caminhoRel}:`, Object.keys(mapeamentos).length);
-
   return { conteudoModificado: conteudoModificado.join("\n"), mapeamentos };
 }
 
