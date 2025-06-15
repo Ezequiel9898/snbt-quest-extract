@@ -7,6 +7,8 @@ import { DownloadPanel } from "@/components/DownloadPanel";
 import { processModpackZip } from "@/utils/snbtProcessor";
 import { toast } from "@/components/ui/use-toast";
 import { Card } from "@/components/ui/card";
+import { extractQuestsFromSnbt } from "@/utils/extractQuestsFromSnbt";
+import { QuestList } from "@/components/QuestList";
 
 const Index = () => {
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
@@ -15,17 +17,31 @@ const Index = () => {
   const [outputZipBlob, setOutputZipBlob] = React.useState<Blob | null>(null);
   const [jsonPreview, setJsonPreview] = React.useState<string>("");
 
+  const [extractedQuests, setExtractedQuests] = React.useState<string[]>([]);
+
   async function handleProcessFiles(files: File[]) {
     setProcessing(true);
     setOutputZipBlob(null);
     setLogLines([]);
     setJsonPreview("");
+    setExtractedQuests([]);
     try {
       // Se algum arquivo for ZIP, processa como antes (só aceita um .zip por vez)
       const zipFile = files.find((f) => f.name.toLowerCase().endsWith(".zip"));
       const snbtFiles = files.filter((f) => f.name.toLowerCase().endsWith(".snbt"));
       if (zipFile) {
+        // Extração dos quests de todos arquivos snbt encontrados dentro do zip
         const arr = new Uint8Array(await zipFile.arrayBuffer());
+        const JSZip = (await import("jszip")).default;
+        const zip = await JSZip.loadAsync(arr);
+        const snbtPaths = Object.keys(zip.files).filter(f => f.endsWith(".snbt"));
+        let allQuests: string[] = [];
+        for (const path of snbtPaths) {
+          const content = await zip.files[path].async("string");
+          allQuests = allQuests.concat(extractQuestsFromSnbt(content));
+        }
+        setExtractedQuests(allQuests);
+        // ... keep rest of logic the same ...
         const result = await processModpackZip(arr);
         setLogLines(result.logLines);
         setJsonPreview(result.jsonResult.slice(0, 5000));
@@ -38,9 +54,15 @@ const Index = () => {
       } else if (snbtFiles.length > 0) {
         // NEW: processa arquivos SNBT diretamente!
         // Para reutilizar a infra, criaremos um zip no navegador contendo os snbts enviados, e usamos o mesmo processador.
+        let allQuests: string[] = [];
+        for (const file of snbtFiles) {
+          const content = await file.text();
+          allQuests = allQuests.concat(extractQuestsFromSnbt(content));
+        }
+        setExtractedQuests(allQuests);
+        // ... keep rest of logic igual ao zip
         const JSZip = (await import("jszip")).default;
         const zip = new JSZip();
-        // adiciona cada snbt no zip dentro de uma pasta fixa simulando o layout "config/ftbquests/quests/"
         for (const file of snbtFiles) {
           zip.file(`config/ftbquests/quests/${file.name}`, await file.text());
         }
@@ -64,6 +86,7 @@ const Index = () => {
         variant: "destructive"
       });
       setLogLines(["Erro: " + String(e?.message || e)]);
+      setExtractedQuests([]);
     } finally {
       setProcessing(false);
     }
@@ -88,6 +111,8 @@ const Index = () => {
           <div>
             <FileDropZone onFilesAccepted={handleFilesAccepted} processing={processing} />
             <ProcessingLog logLines={logLines} />
+            {/* NOVO: Exibição das quests extraídas, só aparece se houver arquivos */}
+            <QuestList quests={extractedQuests} />
           </div>
           <div>
             <Card className="w-full mb-4 p-6 flex flex-col gap-2 bg-card/90">
