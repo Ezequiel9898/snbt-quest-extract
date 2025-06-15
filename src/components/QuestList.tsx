@@ -10,18 +10,15 @@ interface QuestListProps {
 }
 
 export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
-  const [openStates, setOpenStates] = useState<boolean[]>(() =>
-    quests.map(() => false)
-  );
+  // Permitir abrir uma quest por vez
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   React.useEffect(() => {
-    setOpenStates(quests.map(() => false));
+    setOpenIndex(null); // Fecha todas ao atualizar a lista
   }, [quests]);
 
   const toggleQuest = (index: number) => {
-    setOpenStates((prev) =>
-      prev.map((state, i) => (i === index ? !state : state))
-    );
+    setOpenIndex((prev) => (prev === index ? null : index));
   };
 
   if (!quests.length) {
@@ -35,8 +32,7 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
         <span className="font-bold text-base">Quests extraídas</span>
         <Badge variant="outline" className="ml-auto">{quests.length}</Badge>
       </div>
-      {/* Deixe o ScrollArea com max-h fixa, mas sem overflow/y no ul */}
-      <ScrollArea className="max-h-72 px-2 py-2">
+      <ScrollArea className="max-h-72 px-2 py-2 overflow-y-auto">
         <ul className="space-y-2">
           {quests.map((q, i) => (
             <li
@@ -47,7 +43,7 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
                 <button
                   type="button"
                   className="flex w-full items-center cursor-pointer text-sm font-semibold gap-2 group-hover:text-primary transition-colors outline-none"
-                  aria-expanded={openStates[i]}
+                  aria-expanded={openIndex === i}
                   aria-controls={`quest-panel-${i}`}
                   onClick={() => toggleQuest(i)}
                 >
@@ -58,25 +54,30 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
                   <span className="ml-auto text-xs text-muted-foreground whitespace-nowrap">
                     {q.length} caracteres
                   </span>
-                  {openStates[i] ? (
+                  {openIndex === i ? (
                     <ArrowUp className="ml-2 opacity-70" size={18} />
                   ) : (
                     <ArrowDown className="ml-2 opacity-70" size={18} />
                   )}
                 </button>
-                {/* Painel expande sem overflow/hidden, crescendo normalmente */}
                 <div
                   id={`quest-panel-${i}`}
-                  className={`transition-all duration-300 ${
-                    openStates[i]
-                      ? "opacity-100 animate-accordion-down"
-                      : "opacity-0 pointer-events-none animate-accordion-up"
+                  className={`w-full transition-all duration-300 ${
+                    openIndex === i
+                      ? "opacity-100 animate-accordion-down max-h-48"
+                      : "opacity-0 pointer-events-none max-h-0"
                   }`}
-                  aria-hidden={!openStates[i]}
+                  aria-hidden={openIndex !== i}
+                  // O painel expandido pode rolar internamente, se o conteúdo for muito grande
+                  style={{
+                    overflow: openIndex === i ? "auto" : "hidden",
+                  }}
                 >
-                  <pre className="whitespace-pre-wrap break-words text-xs rounded bg-muted/80 p-2 mt-1 border">
-                    {q}
-                  </pre>
+                  {openIndex === i && (
+                    <pre className="whitespace-pre-wrap break-words text-xs rounded bg-muted/80 p-2 mt-1 border max-h-44 overflow-auto">
+                      {q}
+                    </pre>
+                  )}
                 </div>
               </div>
             </li>
