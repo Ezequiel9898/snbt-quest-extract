@@ -1,12 +1,11 @@
+
 import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Info, BookOpen, ArrowDown, ArrowUp, FileText } from "lucide-react";
+import { Info, BookOpen, ArrowDown, ArrowUp } from "lucide-react";
 
-// Custom scrollbar classes for 10px (approx) width
-const customScrollbar =
-  "scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent scrollbar-thin [&::-webkit-scrollbar]:w-[10px] [&::-webkit-scrollbar-thumb]:rounded-md";
+// Removido customScrollbar
 
 interface QuestListProps {
   quests: string[];
@@ -36,7 +35,8 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
           {quests.length}
         </Badge>
       </div>
-      <ScrollArea className="max-h-72 px-2 py-2 overflow-y-auto">
+      {/* Removido ScrollArea e overflow */}
+      <div className="px-2 py-2 max-h-72">
         <ul className="space-y-2">
           {quests.map((q, i) => (
             <li
@@ -66,19 +66,26 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
                 </button>
                 <div
                   id={`quest-panel-${i}`}
-                  className={`w-full ${
-                    openIndex === i
-                      ? "opacity-100 max-h-44"
-                      : "opacity-0 pointer-events-none max-h-0"
-                  }`}
                   aria-hidden={openIndex !== i}
+                  // Animação ao abrir/fechar usando scale e fade.
+                  className={`w-full origin-top transition-all duration-300 ${
+                    openIndex === i
+                      ? "opacity-100 scale-y-100 pointer-events-auto max-h-52"
+                      : "opacity-0 scale-y-95 pointer-events-none max-h-0"
+                  }`}
                   style={{
-                    overflow: openIndex === i ? "auto" : "hidden",
+                    transform: openIndex === i ? "scaleY(1)" : "scaleY(0.95)",
+                    overflow: "hidden"
                   }}
                 >
                   {openIndex === i && (
                     <pre
-                      className="whitespace-pre-wrap break-words text-xs rounded bg-muted/80 p-2 mt-1 border max-h-40 overflow-auto"
+                      className="whitespace-pre-wrap break-words text-xs rounded bg-muted/80 p-2 mt-1 border"
+                      style={{
+                        // Remove overflow/scroll
+                        maxHeight: "208px",
+                        overflow: "hidden"
+                      }}
                     >
                       {q}
                     </pre>
@@ -88,7 +95,8 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
             </li>
           ))}
         </ul>
-      </ScrollArea>
+      </div>
     </Card>
   );
 };
+
