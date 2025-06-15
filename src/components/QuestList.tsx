@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,8 +31,22 @@ export const QuestList: React.FC<QuestListProps> = ({ quests }) => {
           {quests.length}
         </Badge>
       </div>
-      <div className="relative px-3 pt-3 pb-3" style={{ minHeight: 60 }}>
-        <ul className="space-y-3">
+      <div
+        className="relative px-3 pt-5 pb-5 max-h-[420px] md:max-h-[350px] w-full md:w-[92%] mx-auto bg-background/75 border border-muted/40 rounded-xl shadow-inner
+                   overflow-x-hidden overflow-y-auto transition-all"
+        style={{
+          scrollbarWidth: "none", // Firefox
+          msOverflowStyle: "none", // IE/Edge
+        }}
+      >
+        <style>
+          {`
+            .no-scrollbar::-webkit-scrollbar {
+              display: none;
+            }
+          `}
+        </style>
+        <ul className="space-y-3 no-scrollbar">
           {quests.map((q, i) => (
             <li
               key={i}
