@@ -22,21 +22,34 @@ function createTranslationJson(
   return JSON.stringify(finalJson, null, 2);
 }
 
-function extractModpackName(zip: JSZip): string {
+async function extractModpackName(zip: JSZip): Promise<string> {
   const mcmanifest = zip.file('manifest.json');
   if (mcmanifest) {
-    return JSON.parse(mcmanifest.async('string')).name;
+    const content = await mcmanifest.async('string');
+    return JSON.parse(content).name;
   }
   return 'Modpack';
 }
 
 function generateAbbreviation(modpackName: string): string {
-  const words = modpackName.split(' ');
-  let abbreviation = '';
-  for (const word of words) {
-    abbreviation += word.charAt(0).toUpperCase();
+  const words = modpackName.split(/[\W_]+/).filter(word => word.trim() !== '');
+  if (!words.length) {
+    return 'modpack';
   }
-  return abbreviation;
+
+  const abbrev: string[] = [];
+  for (let i = 0; i < words.length - 1; i++) {
+    if (words[i]) {
+      abbrev.push(words[i][0].toLowerCase());
+    }
+  }
+  
+  const lastWord = words[words.length - 1];
+  if (lastWord) {
+    abbrev.push(/^\d+$/.test(lastWord) ? lastWord : lastWord[0].toLowerCase());
+  }
+
+  return abbrev.join('') || 'modpack';
 }
 
 export async function processModpackZip(zipData: Uint8Array) {
@@ -45,7 +58,7 @@ export async function processModpackZip(zipData: Uint8Array) {
   
   try {
     const zip = await JSZip.loadAsync(zipData);
-    const modpackName = extractModpackName(zip);
+    const modpackName = await extractModpackName(zip);
     const abbreviation = generateAbbreviation(modpackName);
     
     logLines.push(`Modpack: ${modpackName} (${abbreviation})`);
