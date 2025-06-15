@@ -147,7 +147,7 @@ const Index = () => {
 
 function Step({ icon, text, className }: { icon: React.ReactNode; text: React.ReactNode; className?: string }) {
   return (
-    <div className={`flex items-start gap-3 bg-muted/60 rounded px-3 py-2 shadow group hover:scale-105 transition-transform cursor-pointer ${className ?? ""}`}>
+    <div className={`flex items-start gap-3 bg-muted/60 rounded px-3 py-2 shadow group hover:scale-105 transition-transform ${className ?? ""}`}>
       <div className="mt-1">{icon}</div>
       <span className="text-sm">{text}</span>
     </div>
