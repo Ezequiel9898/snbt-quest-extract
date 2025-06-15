@@ -1,4 +1,3 @@
-
 // Página principal para o site de tradução automática de FTB Quests e mapeamento SNBT -> JSON
 
 import React from "react";
@@ -10,28 +9,57 @@ import { toast } from "@/components/ui/use-toast";
 import { Card } from "@/components/ui/card";
 
 const Index = () => {
-  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
   const [processing, setProcessing] = React.useState(false);
   const [logLines, setLogLines] = React.useState<string[]>([]);
   const [outputZipBlob, setOutputZipBlob] = React.useState<Blob | null>(null);
   const [jsonPreview, setJsonPreview] = React.useState<string>("");
 
-  async function handleProcessFile(file: File) {
+  async function handleProcessFiles(files: File[]) {
     setProcessing(true);
     setOutputZipBlob(null);
     setLogLines([]);
     setJsonPreview("");
     try {
-      const arr = new Uint8Array(await file.arrayBuffer());
-      const result = await processModpackZip(arr);
-      setLogLines(result.logLines);
-      setJsonPreview(result.jsonResult.slice(0, 5000)); // mostre só o começo
-      const zipBlob = await result.outputZip.generateAsync({ type: "blob" });
-      setOutputZipBlob(zipBlob);
-      toast({ title: "Processamento concluído!", description: "Baixe abaixo os arquivos modificados e a tradução extraída." });
+      // Se algum arquivo for ZIP, processa como antes (só aceita um .zip por vez)
+      const zipFile = files.find((f) => f.name.toLowerCase().endsWith(".zip"));
+      const snbtFiles = files.filter((f) => f.name.toLowerCase().endsWith(".snbt"));
+      if (zipFile) {
+        const arr = new Uint8Array(await zipFile.arrayBuffer());
+        const result = await processModpackZip(arr);
+        setLogLines(result.logLines);
+        setJsonPreview(result.jsonResult.slice(0, 5000));
+        const zipBlob = await result.outputZip.generateAsync({ type: "blob" });
+        setOutputZipBlob(zipBlob);
+        toast({
+          title: "Processamento concluído!",
+          description: "Baixe abaixo os arquivos modificados e a tradução extraída.",
+        });
+      } else if (snbtFiles.length > 0) {
+        // NEW: processa arquivos SNBT diretamente!
+        // Para reutilizar a infra, criaremos um zip no navegador contendo os snbts enviados, e usamos o mesmo processador.
+        const JSZip = (await import("jszip")).default;
+        const zip = new JSZip();
+        // adiciona cada snbt no zip dentro de uma pasta fixa simulando o layout "config/ftbquests/quests/"
+        for (const file of snbtFiles) {
+          zip.file(`config/ftbquests/quests/${file.name}`, await file.text());
+        }
+        const generatedZip = await zip.generateAsync({ type: "uint8array" });
+        const result = await processModpackZip(new Uint8Array(generatedZip));
+        setLogLines(result.logLines);
+        setJsonPreview(result.jsonResult.slice(0, 5000));
+        const zipBlob = await result.outputZip.generateAsync({ type: "blob" });
+        setOutputZipBlob(zipBlob);
+        toast({
+          title: "Processamento concluído!",
+          description: "Baixe abaixo os arquivos modificados e a tradução extraída.",
+        });
+      } else {
+        throw new Error("Por favor, envie arquivos .zip ou .snbt.");
+      }
     } catch (e: any) {
       toast({
-        title: "Erro ao processar o ZIP",
+        title: "Erro ao processar arquivos",
         description: String(e?.message || e),
         variant: "destructive"
       });
@@ -41,9 +69,9 @@ const Index = () => {
     }
   }
 
-  function handleFileAccepted(file: File) {
-    setSelectedFile(file);
-    handleProcessFile(file);
+  function handleFilesAccepted(files: File[]) {
+    setSelectedFiles(files);
+    handleProcessFiles(files);
   }
 
   // Layout principal, desktop-first, design limpo e sofisticado, largura máxima, sem sidebar.
@@ -53,12 +81,12 @@ const Index = () => {
         <header className="flex flex-col items-center justify-center gap-2 mb-2">
           <h1 className="text-4xl font-bold">FTB Quests Tradutor Automático</h1>
           <p className="text-base text-muted-foreground">
-            Faça upload do <span className="font-semibold">modpack ZIP</span> contendo <span className="font-mono">config/ftbquests/quests/*.snbt</span> e baixe os arquivos já <span className="font-semibold">mapeados para tradução</span> e o <span className="font-mono">en_us.json</span>.
+            Faça upload dos arquivos <span className="font-semibold">.zip</span> ou <span className="font-semibold">.snbt</span> contendo <span className="font-mono">config/ftbquests/quests/*.snbt</span> e baixe os arquivos já <span className="font-semibold">mapeados para tradução</span> e o <span className="font-mono">en_us.json</span>.
           </p>
         </header>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
           <div>
-            <FileDropZone onFileAccepted={handleFileAccepted} processing={processing} />
+            <FileDropZone onFilesAccepted={handleFilesAccepted} processing={processing} />
             <ProcessingLog logLines={logLines} />
           </div>
           <div>

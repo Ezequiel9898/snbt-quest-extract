@@ -5,23 +5,30 @@ import { UploadCloud } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 interface FileDropZoneProps {
-  onFileAccepted: (file: File) => void;
+  onFilesAccepted: (files: File[]) => void;
   processing: boolean;
 }
-const ACCEPT = { "application/zip": [".zip"] };
 
-export const FileDropZone: React.FC<FileDropZoneProps> = ({ onFileAccepted, processing }) => {
+const ACCEPT = {
+  "application/zip": [".zip"],
+  "text/plain": [".snbt"], // Para arquivos snbt detectados como text/plain
+  "application/octet-stream": [".snbt"], // fallback comum para arquivos sem MIME
+};
+
+export const FileDropZone: React.FC<FileDropZoneProps> = ({ onFilesAccepted, processing }) => {
   const dropRef = useRef<HTMLDivElement | null>(null);
 
-  const onDrop = React.useCallback((files: File[]) => {
-    if (files && files[0]) onFileAccepted(files[0]);
-  }, [onFileAccepted]);
+  const onDrop = React.useCallback(
+    (files: File[]) => {
+      if (files && files.length > 0) onFilesAccepted(files);
+    },
+    [onFilesAccepted]
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: ACCEPT,
-    multiple: false,
-    maxFiles: 1,
+    multiple: true,
     noClick: processing,
     noDrag: processing,
     disabled: processing,
@@ -35,19 +42,19 @@ export const FileDropZone: React.FC<FileDropZoneProps> = ({ onFileAccepted, proc
           isDragActive ? "bg-accent/60" : ""
         }`}
         tabIndex={0}
-        aria-label="Área para soltar arquivo ZIP"
+        aria-label="Área para soltar arquivos ZIP ou SNBT"
         ref={dropRef}
         aria-disabled={processing}
       >
         <input {...getInputProps()} />
         <UploadCloud size={44} className="mb-3 text-primary" />
-        <div className="font-medium text-lg">
+        <div className="font-medium text-lg text-center">
           {processing
             ? "Processando..."
             : (
                 <>
-                  Arraste o arquivo <span className="font-semibold">.zip</span> do modpack aqui<br />
-                  <span className="text-xs">Ou clique para selecionar</span>
+                  Arraste arquivos <span className="font-semibold">.zip</span> <b>ou</b> <span className="font-semibold">.snbt</span> aqui<br />
+                  <span className="text-xs">Ou clique para selecionar (arquivos ou pastas)</span>
                 </>
               )
           }
