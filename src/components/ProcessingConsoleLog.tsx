@@ -12,12 +12,13 @@ export const ProcessingConsoleLog: React.FC<ProcessingConsoleLogProps> = ({ logL
   // Regex helpers para estilização
   function styleLine(line: string) {
     // Estilizar prefixos especiais dos logs do script
-    if (/Modpack:/.test(line)) {
+    if (/^Modpack: /.test(line)) {
+      const prefix = "Modpack: ";
+      const rest = line.slice(prefix.length);
       return (
-        <span className="text-blue-600 dark:text-blue-300 font-bold">
-          {line.replace(/^(Modpack: )/, (_,$1) => (
-            <span className="text-muted-foreground font-semibold">{ $1 }</span>
-          ))}
+        <span className="font-bold">
+          <span className="text-muted-foreground font-semibold">{prefix}</span>
+          <span className="text-blue-600 dark:text-blue-300">{rest}</span>
         </span>
       );
     }
@@ -43,7 +44,7 @@ export const ProcessingConsoleLog: React.FC<ProcessingConsoleLogProps> = ({ logL
       );
     }
     // defaults
-    return <span className="">{line}</span>;
+    return <span>{line}</span>;
   }
 
   return (
