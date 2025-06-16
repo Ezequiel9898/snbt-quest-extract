@@ -114,12 +114,12 @@ const Index = () => {
           </p>
         </header>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-14 items-start">
-          <div>
+          <div className="flex flex-col">
             <FileDropZone onFilesAccepted={handleFilesAccepted} processing={processing} />
             <ProcessingConsoleLog logLines={logLines} />
             <QuestList quests={extractedQuests} />
           </div>
-          <div>
+          <div className="flex flex-col">
             <Card className="w-full mb-4 p-0 flex flex-col gap-0 bg-card shadow-xl border-2 border-muted animate-fade-in rounded-2xl">
               <div className="flex items-center gap-2 p-4 pb-2 border-b bg-card">
                 <Info className="text-primary animate-pulse" size={22} />
