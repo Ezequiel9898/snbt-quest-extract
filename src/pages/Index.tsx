@@ -120,18 +120,34 @@ const Index = () => {
             <QuestList quests={extractedQuests} />
           </div>
           <div className="flex flex-col">
-            <Card className="w-full mb-4 p-0 flex flex-col gap-0 bg-card shadow-xl border-2 border-muted animate-fade-in rounded-2xl">
-              <div className="flex items-center gap-2 p-4 pb-2 border-b bg-card">
-                <Info className="text-primary animate-pulse" size={22} />
-                <span className="font-semibold text-lg">Como funciona?</span>
+            <Card className="w-full mb-6 p-0 flex flex-col gap-0 bg-gradient-to-br from-card via-card to-muted/20 shadow-xl border-2 border-muted/60 animate-fade-in rounded-2xl overflow-hidden">
+              <div className="flex items-center gap-3 px-6 py-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur-sm">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Info className="text-primary" size={20} />
+                </div>
+                <span className="font-bold text-xl tracking-tight text-foreground">Como funciona?</span>
               </div>
-              <div className="p-4 pt-2 space-y-3">
+              <div className="p-6 space-y-4">
                 <ComoFuncionaSteps />
-                <ul className="list-disc list-inside text-xs text-muted-foreground mt-2 pl-1 space-y-1">
-                  <li>Compatível com modpacks FTB modernos.</li>
-                  <li>Todo o processamento é feito no seu navegador: <b>seu arquivo NÃO é enviado para a internet</b>.</li>
-                  <li>Design inspirado no script Python original do autor.</li>
-                </ul>
+                <div className="mt-6 pt-4 border-t border-muted/30">
+                  <div className="text-center">
+                    <h4 className="font-semibold text-sm text-muted-foreground mb-3">Características</h4>
+                    <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
+                        <Check size={14} className="text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <span>Compatível com modpacks FTB modernos</span>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
+                        <Check size={14} className="text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <span>Processamento 100% local no navegador</span>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
+                        <Check size={14} className="text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <span>Baseado no script Python original</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </Card>
             <DownloadPanel outputZipBlob={outputZipBlob} jsonPreview={jsonPreview} />
@@ -154,52 +170,54 @@ const Index = () => {
 
 function Step({ icon, text, className }: { icon: React.ReactNode; text: React.ReactNode; className?: string }) {
   return (
-    <div className={`flex items-start gap-3 bg-muted/60 rounded px-3 py-2 shadow group hover:scale-105 transition-transform ${className ?? ""}`}>
-      <div className="mt-1">{icon}</div>
-      <span className="text-sm">{text}</span>
+    <div className={`flex items-start gap-4 bg-gradient-to-r from-muted/40 to-muted/20 rounded-xl px-4 py-3 shadow-sm border border-muted/40 group hover:shadow-md hover:border-primary/30 transition-all duration-200 ${className ?? ""}`}>
+      <div className="flex-shrink-0 mt-0.5 p-2 bg-background rounded-lg shadow-sm border border-muted/50">
+        {icon}
+      </div>
+      <span className="text-sm leading-relaxed text-foreground/90">{text}</span>
     </div>
   );
 }
 
 const ComoFuncionaSteps = () => (
-  <div className="flex flex-col gap-3">
+  <div className="flex flex-col gap-4">
     <Step
-      icon={<ArrowDown size={18} className="text-blue-500 animate-bounce" />}
+      icon={<ArrowDown size={18} className="text-blue-500" />}
       text={
         <>
-          Arraste aqui o arquivo <span className="font-mono font-semibold">modpack.zip</span> (ou exporte via CurseForge).
+          Arraste o arquivo <span className="font-semibold bg-primary/10 px-1.5 py-0.5 rounded text-primary">modpack.zip</span> ou arquivos <span className="font-semibold bg-primary/10 px-1.5 py-0.5 rounded text-primary">.snbt</span>
         </>
       }
     />
     <Step
-      icon={<Check size={18} className="text-green-600 dark:text-green-400 animate-fade-in" />}
+      icon={<Check size={18} className="text-green-600 dark:text-green-400" />}
       text={
         <>
-          O site extrai todos os textos legíveis dos arquivos <b>.snbt</b> dentro de <span className="font-mono">config/ftbquests/quests</span>.
+          Extrai textos dos arquivos dentro de <span className="font-mono text-xs bg-muted/60 px-1.5 py-0.5 rounded">config/ftbquests/quests</span>
         </>
       }
     />
     <Step
-      icon={<ArrowUp size={18} className="text-primary animate-fade-in" />}
+      icon={<ArrowUp size={18} className="text-primary" />}
       text={
         <>
-          Os textos são convertidos em chaves de tradução como <code>ptnq.quests.intro.welcome.title</code> e substituídos nos arquivos.
+          Converte em chaves como <span className="font-mono text-xs bg-accent/60 px-1.5 py-0.5 rounded">ptnq.quests.intro.title</span>
         </>
       }
     />
     <Step
-      icon={<FileText size={18} className="text-secondary animate-fade-in" />}
+      icon={<FileText size={18} className="text-violet-600 dark:text-violet-400" />}
       text={
         <>
-          Todas as traduções extraídas são salvas em <span className="font-mono">output/en_us.json</span> para facilitar tradução futura.
+          Gera o <span className="font-mono text-xs bg-violet-100 dark:bg-violet-900/30 px-1.5 py-0.5 rounded text-violet-700 dark:text-violet-300">en_us.json</span> para tradução
         </>
       }
     />
     <Step
-      icon={<FileDown size={18} className="text-muted-foreground animate-fade-in" />}
+      icon={<FileDown size={18} className="text-orange-600 dark:text-orange-400" />}
       text={
         <>
-          Por fim, você pode baixar os arquivos .snbt processados e o JSON para uso no modpack.
+          Baixe os arquivos <span className="font-semibold">.snbt processados</span> e o JSON
         </>
       }
     />
