@@ -31,7 +31,7 @@ export const DownloadPanel: React.FC<DownloadPanelProps> = ({ outputZipBlob, jso
             {jsonPreview.length} chars
           </Badge>
         </div>
-        <ScrollArea className="h-[420px] md:h-[350px] w-full">
+        <ScrollArea className="h-[450px] md:h-[380px] w-full">
           <div className="px-3 pt-5 pb-5 w-full md:w-[92%] mx-auto bg-background border border-muted/40 rounded-xl shadow-inner">
             <pre className="text-xs font-mono whitespace-pre-wrap">{jsonPreview}</pre>
           </div>
