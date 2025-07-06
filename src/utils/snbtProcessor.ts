@@ -1,4 +1,3 @@
-
 import JSZip from 'jszip';
 
 function decodeValue(value: string): string {
@@ -330,7 +329,7 @@ async function extractModpackName(zip: JSZip): Promise<string> {
   return 'Modpack';
 }
 
-export async function processModpackZip(zipData: Uint8Array) {
+export async function processModpackZip(zipData: Uint8Array, config?: any) {
   const logLines: string[] = [];
   
   try {
@@ -353,20 +352,25 @@ export async function processModpackZip(zipData: Uint8Array) {
       
       logLines.push(`\n→ ${filePath}`);
       
-      const content = await file.async("string");
-      const relativePath = filePath.replace(/^.*config\/ftbquests\/quests\//, '');
-      
-      const { modifiedContent, mappings } = processSnbtContent(
-        content, 
-        relativePath, 
-        'config/ftbquests/quests', 
-        abbreviation
-      );
-      
-      outputZip.file(`output/${filePath}`, modifiedContent);
-      allMapeamentos.push([relativePath, mappings]);
-      
-      logLines.push("  ✓ OK");
+      try {
+        const content = await file.async("string");
+        const relativePath = filePath.replace(/^.*config\/ftbquests\/quests\//, '');
+        
+        const { modifiedContent, mappings } = processSnbtContent(
+          content, 
+          relativePath, 
+          'config/ftbquests/quests', 
+          abbreviation
+        );
+        
+        outputZip.file(`output/${filePath}`, modifiedContent);
+        allMapeamentos.push([relativePath, mappings]);
+        
+        logLines.push("  ✓ OK");
+      } catch (error) {
+        logLines.push(`  ✗ Error: ${error}`);
+        console.error(`Error processing ${filePath}:`, error);
+      }
     }
     
     if (allMapeamentos.length > 0) {
@@ -390,24 +394,23 @@ export async function processModpackZip(zipData: Uint8Array) {
     
   } catch (error) {
     logLines.push(`\n! Error: ${error}`);
+    console.error("processModpackZip error:", error);
     throw error;
   }
 }
 
-export async function processSnbtFiles(files: File[]) {
+export async function processSnbtFiles(files: File[], config?: any) {
   const logLines: string[] = [];
   
   try {
-    // Determinar nome base para abreviação (nome da pasta do projeto)
     let baseName = 'modpack';
     
     if (files.length > 0) {
       const firstFile = files[0];
       if (firstFile.webkitRelativePath) {
-        // Extrair nome da pasta principal
         const pathParts = firstFile.webkitRelativePath.split('/');
         if (pathParts.length > 1) {
-          baseName = pathParts[0]; // Nome da pasta principal
+          baseName = pathParts[0];
         }
       }
     }
@@ -419,7 +422,6 @@ export async function processSnbtFiles(files: File[]) {
     const outputZip = new JSZip();
     const allMapeamentos: Array<[string, Record<string, string>]> = [];
     
-    // Filtrar apenas arquivos dentro de config/ftbquests/quests/
     const filteredFiles = files.filter(file => {
       const path = file.webkitRelativePath || file.name;
       return path.includes('config/ftbquests/quests/') && file.name.endsWith('.snbt');
@@ -429,20 +431,25 @@ export async function processSnbtFiles(files: File[]) {
       const relativePath = file.webkitRelativePath || file.name;
       logLines.push(`\n→ ${relativePath}`);
       
-      const content = await file.text();
-      const questsPath = relativePath.substring(relativePath.indexOf('config/ftbquests/quests/') + 'config/ftbquests/quests/'.length);
-      
-      const { modifiedContent, mappings } = processSnbtContent(
-        content, 
-        questsPath, 
-        'config/ftbquests/quests', 
-        abbreviation
-      );
-      
-      outputZip.file(`output/config/ftbquests/quests/${questsPath}`, modifiedContent);
-      allMapeamentos.push([questsPath, mappings]);
-      
-      logLines.push("  ✓ OK");
+      try {
+        const content = await file.text();
+        const questsPath = relativePath.substring(relativePath.indexOf('config/ftbquests/quests/') + 'config/ftbquests/quests/'.length);
+        
+        const { modifiedContent, mappings } = processSnbtContent(
+          content, 
+          questsPath, 
+          'config/ftbquests/quests', 
+          abbreviation
+        );
+        
+        outputZip.file(`output/config/ftbquests/quests/${questsPath}`, modifiedContent);
+        allMapeamentos.push([questsPath, mappings]);
+        
+        logLines.push("  ✓ OK");
+      } catch (error) {
+        logLines.push(`  ✗ Error: ${error}`);
+        console.error(`Error processing ${file.name}:`, error);
+      }
     }
     
     if (allMapeamentos.length > 0) {
@@ -466,6 +473,7 @@ export async function processSnbtFiles(files: File[]) {
     
   } catch (error) {
     logLines.push(`\n! Error: ${error}`);
+    console.error("processSnbtFiles error:", error);
     throw error;
   }
 }
