@@ -1,3 +1,4 @@
+
 import JSZip from 'jszip';
 
 function decodeValue(value: string): string {
@@ -11,15 +12,109 @@ function createTranslationJson(
   allMapeamentos: Array<[string, Record<string, string>]>,
   abbreviation: string
 ): string {
-  const finalJson: Record<string, string> = {};
-  for (const [_, mappings] of allMapeamentos) {
-    for (const key in mappings) {
-      if (mappings.hasOwnProperty(key)) {
-        finalJson[key] = mappings[key];
+  const modpackEntries: Record<string, string> = {};
+  const otherGroups: Array<[string, Record<string, string>]> = [];
+  const rewardGroups: Record<string, string>[] = [];
+
+  // Separar entradas do modpack e agrupar outras
+  for (const [filePath, mappings] of allMapeamentos) {
+    const filteredMappings: Record<string, string> = {};
+    
+    for (const [key, value] of Object.entries(mappings)) {
+      if (key.startsWith(`${abbreviation}.modpack.`)) {
+        modpackEntries[key] = value;
+      } else {
+        filteredMappings[key] = value;
+      }
+    }
+
+    if (Object.keys(filteredMappings).length > 0) {
+      if (filePath.includes('reward_tables')) {
+        rewardGroups.push(filteredMappings);
+      } else {
+        otherGroups.push([filePath, filteredMappings]);
       }
     }
   }
-  return JSON.stringify(finalJson, null, 2);
+
+  // Construir JSON com formatação organizada
+  const jsonLines: string[] = ['{'];
+  let lastComma = false;
+
+  // Adicionar entradas do modpack primeiro
+  if (Object.keys(modpackEntries).length > 0) {
+    const items = Object.entries(modpackEntries);
+    for (let i = 0; i < items.length; i++) {
+      const [key, value] = items[i];
+      let line = `  "${key}": ${JSON.stringify(value)}`;
+      if (i < items.length - 1 || otherGroups.length > 0 || rewardGroups.length > 0) {
+        line += ',';
+        lastComma = true;
+      } else {
+        lastComma = false;
+      }
+      jsonLines.push(line);
+    }
+  }
+
+  // Adicionar outros grupos
+  let prevGroup: string | null = null;
+  for (let groupIdx = 0; groupIdx < otherGroups.length; groupIdx++) {
+    const [filePath, mappings] = otherGroups[groupIdx];
+    
+    if (prevGroup && prevGroup !== filePath) {
+      if (lastComma) {
+        jsonLines.push('');
+      } else {
+        jsonLines[jsonLines.length - 1] += ',';
+        jsonLines.push('');
+      }
+    }
+
+    const items = Object.entries(mappings);
+    for (let i = 0; i < items.length; i++) {
+      const [key, value] = items[i];
+      let line = `  "${key}": ${JSON.stringify(value)}`;
+      const needsComma = i < items.length - 1 || groupIdx < otherGroups.length - 1 || rewardGroups.length > 0;
+      if (needsComma) {
+        line += ',';
+        lastComma = true;
+      } else {
+        lastComma = false;
+      }
+      jsonLines.push(line);
+    }
+    
+    prevGroup = filePath;
+  }
+
+  // Adicionar grupos de reward
+  if (rewardGroups.length > 0) {
+    if (jsonLines[jsonLines.length - 1].endsWith(',')) {
+      jsonLines.push('');
+    } else if (otherGroups.length > 0 || Object.keys(modpackEntries).length > 0) {
+      jsonLines[jsonLines.length - 1] += ',';
+      jsonLines.push('');
+    }
+
+    const allRewards: Record<string, string> = {};
+    for (const rewards of rewardGroups) {
+      Object.assign(allRewards, rewards);
+    }
+
+    const items = Object.entries(allRewards);
+    for (let i = 0; i < items.length; i++) {
+      const [key, value] = items[i];
+      let line = `  "${key}": ${JSON.stringify(value)}`;
+      if (i < items.length - 1) {
+        line += ',';
+      }
+      jsonLines.push(line);
+    }
+  }
+
+  jsonLines.push('}');
+  return jsonLines.join('\n');
 }
 
 async function extractModpackName(zip: JSZip): Promise<string> {
@@ -134,7 +229,8 @@ function processSnbtContent(
     : null;
   
   const pathParts = relativePath.split('/');
-  const chapterFolder = pathParts.length > 1 ? pathParts[0] : null;
+  const subpath = pathParts.length > 1 ? pathParts.slice(0, -1).join('/') : '';
+  const chapterFolder = subpath.split('/')[0] || null;
   
   let braceDepth = 0;
   let questTitleCounter = 1;
@@ -151,6 +247,7 @@ function processSnbtContent(
   for (const line of lines) {
     const stripped = line.trim();
     
+    // Detectar contextos
     if (stripped.startsWith('tasks: [')) {
       currentContext = 'tasks';
     } else if (stripped.startsWith('rewards: [')) {
@@ -159,11 +256,12 @@ function processSnbtContent(
       currentContext = null;
     }
     
+    // Contar profundidade de chaves/colchetes
     const openBraces = (line.match(/[{\[]/g) || []).length;
     const closeBraces = (line.match(/[}\]]/g) || []).length;
     braceDepth += openBraces - closeBraces;
     
-    // Handle inline description arrays
+    // Handle inline description arrays: description: ["text1", "text2"]
     if (/^\s*description:\s*\[.*\]\s*$/.test(line)) {
       const indent = line.match(/^(\s*)/)![1];
       const descriptions = line.match(/"((?:[^"\\]|\\.)*)"/g) || [];
