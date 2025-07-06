@@ -11,15 +11,15 @@ function decodeValue(value: string): string {
     .replace(/\\\\/g, '\\');
 }
 
-function generateAbbreviation(name: string): string {
-  const words = name.split(/[\W_]+/).filter(word => word.trim() !== '');
+function generateAbbreviation(modpackName: string): string {
+  const words = modpackName.trim().split(/[\W_]+/).filter(word => word.trim() !== '');
   if (!words.length) {
     return 'modpack';
   }
 
   const abbrev: string[] = [];
   
-  // Para todos os words exceto o último, pegar primeira letra
+  // Para todas as palavras exceto a última, pegar primeira letra
   for (let i = 0; i < words.length - 1; i++) {
     if (words[i]) {
       abbrev.push(words[i][0].toLowerCase());
@@ -35,39 +35,181 @@ function generateAbbreviation(name: string): string {
   return abbrev.join('') || 'modpack';
 }
 
-function generateFileAbbreviation(filename: string): string {
-  // Se o nome tem 4 ou menos letras, usar o nome completo
-  if (filename.length <= 4) {
-    return filename.toLowerCase();
-  }
+function processSnbtContent(
+  content: string, 
+  relativePath: string, 
+  filterDirectory: string, 
+  abbreviation: string
+): { modifiedContent: string; mappings: Record<string, string> } {
   
-  // Senão, abreviar para 4 letras
-  const words = filename.split(/[\W_]+/).filter(word => word.trim() !== '');
-  if (!words.length) {
-    return filename.substring(0, 4).toLowerCase();
-  }
+  const lines = content.split('\n');
+  const modifiedLines: string[] = [];
+  const mappings: Record<string, string> = {};
   
-  if (words.length === 1) {
-    return words[0].substring(0, 4).toLowerCase();
-  }
+  const currentFilename = relativePath.split('/').pop() || '';
+  const fileId = currentFilename.endsWith('.snbt') ? currentFilename.replace('.snbt', '') : null;
   
-  // Pegar primeira letra de cada palavra até ter 4 letras
-  let abbrev = '';
-  for (const word of words) {
-    if (abbrev.length < 4 && word.length > 0) {
-      abbrev += word[0].toLowerCase();
+  // Calcular subpath como no Python
+  const pathParts = relativePath.split('/');
+  const dirPath = pathParts.length > 1 ? pathParts.slice(0, -1).join('/') : '';
+  const subpath = dirPath.replace(filterDirectory, '').replace(/^\//, '') || '.';
+  const chapterFolder = subpath !== '.' ? subpath.split('/')[0] : null;
+  
+  let braceDepth = 0;
+  let questTitleCounter = 1;
+  let questSubtitleCounter = 1;
+  let questDescCounter = 1;
+  let rewardTitleCounter = 1;
+  let taskTitleCounter = 1;
+  let chapterGroupTitleCounter = 1;
+  let withinDescription = false;
+  let descTempLines: string[] = [];
+  
+  let currentContext: string | null = null;
+  
+  for (const line of lines) {
+    const stripped = line.trim();
+    
+    // Detectar contextos
+    if (stripped.startsWith('tasks: [')) {
+      currentContext = 'tasks';
+    } else if (stripped.startsWith('rewards: [')) {
+      currentContext = 'rewards';
+    } else if (stripped === ']') {
+      currentContext = null;
+    }
+    
+    // Contar profundidade de chaves/colchetes
+    const openBraces = (line.match(/[{\[]/g) || []).length;
+    const closeBraces = (line.match(/[}\]]/g) || []).length;
+    braceDepth += openBraces - closeBraces;
+    
+    // Handle inline description arrays: description: ["text1", "text2"]
+    if (/^\s*description:\s*\[.*\]\s*$/.test(line)) {
+      const indent = line.match(/^(\s*)/)![1];
+      const descriptions = line.match(/"((?:[^"\\]|\\.)*)"/g) || [];
+      const novasLinhas = [indent + 'description: ['];
+      
+      descriptions.forEach(desc => {
+        const value = desc.slice(1, -1); // Remove quotes
+        const key = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
+        mappings[key] = decodeValue(value);
+        novasLinhas.push(`${indent}  "{${key}}"`);
+        questDescCounter++;
+      });
+      
+      novasLinhas.push(indent + ']');
+      modifiedLines.push(...novasLinhas);
+      continue;
+    }
+    
+    // Handle multiline description arrays
+    if (line.includes('description: [')) {
+      withinDescription = true;
+      descTempLines = [];
+      modifiedLines.push(line);
+      continue;
+    }
+    
+    if (withinDescription) {
+      if (line.includes(']')) {
+        withinDescription = false;
+        modifiedLines.push(...descTempLines);
+        modifiedLines.push(line);
+        continue;
+      }
+      
+      const descMatch = line.match(/^(\s*)"((?:[^"\\]|\\.)*)"\s*$/);
+      if (descMatch) {
+        const indent = descMatch[1];
+        const originalValue = descMatch[2];
+        const key = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
+        mappings[key] = decodeValue(originalValue);
+        descTempLines.push(`${indent}"{${key}}"`);
+        questDescCounter++;
+        continue;
+      }
+    }
+    
+    // Handle chapter_groups.snbt title replacements
+    if (currentFilename === 'chapter_groups.snbt') {
+      const newLine = line.replace(/title:\s*"((?:[^"\\]|\\.)*)"/g, (match, value) => {
+        const key = `${abbreviation}.chapter_groups.title${chapterGroupTitleCounter}`;
+        chapterGroupTitleCounter++;
+        mappings[key] = decodeValue(value);
+        return `title: "{${key}}"`;
+      });
+      modifiedLines.push(newLine);
+      continue;
+    }
+    
+    // Handle context-specific titles (rewards/tasks)
+    const titleMatch = line.match(/^(\s*)title:\s*"((?:[^"\\]|\\.)*)"\s*$/);
+    if (titleMatch) {
+      const indent = titleMatch[1];
+      const originalValue = titleMatch[2];
+      const decodedValue = decodeValue(originalValue);
+      
+      if (currentContext === 'rewards') {
+        const key = `${abbreviation}.quests.${chapterFolder}.${fileId}.reward${rewardTitleCounter}`;
+        rewardTitleCounter++;
+        mappings[key] = decodedValue;
+        modifiedLines.push(`${indent}title: "{${key}}"`);
+        continue;
+      } else if (currentContext === 'tasks') {
+        const key = `${abbreviation}.quests.${chapterFolder}.${fileId}.task${taskTitleCounter}`;
+        taskTitleCounter++;
+        mappings[key] = decodedValue;
+        modifiedLines.push(`${indent}title: "{${key}}"`);
+        continue;
+      }
+    }
+    
+    // Handle general title/subtitle
+    let modified = false;
+    for (const type of ['title', 'subtitle']) {
+      const match = line.match(new RegExp(`^(\\s*)${type}:\\s*"((?:[^"\\\\]|\\\\.)*)"\\s*$`));
+      if (match) {
+        const indent = match[1];
+        const originalValue = match[2];
+        
+        if (/\{ftbquests\./.test(originalValue)) {
+          break;
+        }
+        
+        let key: string;
+        if (currentFilename === 'data.snbt') {
+          key = `${abbreviation}.modpack.${type}`;
+        } else if (chapterFolder && fileId && braceDepth <= 2) {
+          key = `${abbreviation}.${chapterFolder}.${fileId}.${type}`;
+        } else if (chapterFolder && fileId && braceDepth > 2) {
+          const counter = type === 'title' ? questTitleCounter : questSubtitleCounter;
+          key = `${abbreviation}.quests.${chapterFolder}.${fileId}.${type}${counter}`;
+          if (type === 'title') {
+            questTitleCounter++;
+          } else {
+            questSubtitleCounter++;
+          }
+        } else {
+          break;
+        }
+        
+        mappings[key] = decodeValue(originalValue);
+        modifiedLines.push(`${indent}${type}: "{${key}}"`);
+        modified = true;
+        break;
+      }
+    }
+    
+    if (!modified && !withinDescription) {
+      modifiedLines.push(line);
     }
   }
   
-  // Se ainda não tem 4 letras, completar com letras da primeira palavra
-  if (abbrev.length < 4 && words[0].length > 1) {
-    const firstWord = words[0].toLowerCase();
-    for (let i = 1; i < firstWord.length && abbrev.length < 4; i++) {
-      abbrev += firstWord[i];
-    }
-  }
-  
-  return abbrev.padEnd(4, 'x').substring(0, 4);
+  return {
+    modifiedContent: modifiedLines.join('\n'),
+    mappings
+  };
 }
 
 function createTranslationJson(
@@ -83,9 +225,6 @@ function createTranslationJson(
     const filteredMappings: Record<string, string> = {};
     
     for (const [key, value] of Object.entries(mappings)) {
-      // Filtrar valores null, undefined ou vazios
-      if (!value || value.trim() === '') continue;
-      
       if (key.startsWith(`${abbreviation}.modpack.`)) {
         modpackEntries[key] = value;
       } else {
@@ -193,7 +332,6 @@ async function extractModpackName(zip: JSZip): Promise<string> {
 
 export async function processModpackZip(zipData: Uint8Array) {
   const logLines: string[] = [];
-  const JSZip = (await import("jszip")).default;
   
   try {
     const zip = await JSZip.loadAsync(zipData);
@@ -256,205 +394,13 @@ export async function processModpackZip(zipData: Uint8Array) {
   }
 }
 
-function processSnbtContent(
-  content: string, 
-  relativePath: string, 
-  filterDirectory: string, 
-  abbreviation: string
-): { modifiedContent: string; mappings: Record<string, string> } {
-  
-  const lines = content.split('\n');
-  const modifiedLines: string[] = [];
-  const mappings: Record<string, string> = {};
-  
-  const currentFilename = relativePath.split('/').pop() || '';
-  const fileId = currentFilename.endsWith('.snbt') 
-    ? currentFilename.replace('.snbt', '') 
-    : '';
-  
-  // Calcular subpath como no Python
-  const pathParts = relativePath.split('/');
-  const dirPath = pathParts.length > 1 ? pathParts.slice(0, -1).join('/') : '';
-  const subpath = dirPath || '.';
-  const chapterFolder = subpath !== '.' ? subpath.split('/')[0] : null;
-  
-  let braceDepth = 0;
-  let questTitleCounter = 1;
-  let questSubtitleCounter = 1;
-  let questDescCounter = 1;
-  let rewardTitleCounter = 1;
-  let taskTitleCounter = 1;
-  let chapterGroupTitleCounter = 1;
-  let withinDescription = false;
-  let descTempLines: string[] = [];
-  
-  let currentContext: string | null = null;
-  
-  for (const line of lines) {
-    const stripped = line.trim();
-    
-    // Detectar contextos
-    if (stripped.startsWith('tasks: [')) {
-      currentContext = 'tasks';
-    } else if (stripped.startsWith('rewards: [')) {
-      currentContext = 'rewards';
-    } else if (stripped === ']') {
-      currentContext = null;
-    }
-    
-    // Contar profundidade de chaves/colchetes
-    const openBraces = (line.match(/[{\[]/g) || []).length;
-    const closeBraces = (line.match(/[}\]]/g) || []).length;
-    braceDepth += openBraces - closeBraces;
-    
-    // Handle inline description arrays: description: ["text1", "text2"]
-    if (/^\s*description:\s*\[.*\]\s*$/.test(line)) {
-      const indent = line.match(/^(\s*)/)![1];
-      const descriptions = line.match(/"((?:[^"\\]|\\.)*)"/g) || [];
-      const novasLinhas = [indent + 'description: ['];
-      
-      descriptions.forEach(desc => {
-        const value = desc.slice(1, -1); // Remove quotes
-        if (!value || value.trim() === '') return; // Skip empty values
-        const key = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
-        mappings[key] = decodeValue(value);
-        novasLinhas.push(`${indent}  "{${key}}"`);
-        questDescCounter++;
-      });
-      
-      novasLinhas.push(indent + ']');
-      modifiedLines.push(...novasLinhas);
-      continue;
-    }
-    
-    // Handle multiline description arrays
-    if (line.includes('description: [')) {
-      withinDescription = true;
-      descTempLines = [];
-      modifiedLines.push(line);
-      continue;
-    }
-    
-    if (withinDescription) {
-      if (line.includes(']')) {
-        withinDescription = false;
-        modifiedLines.push(...descTempLines);
-        modifiedLines.push(line);
-        continue;
-      }
-      
-      const descMatch = line.match(/^(\s*)"((?:[^"\\]|\\.)*)"\s*$/);
-      if (descMatch) {
-        const indent = descMatch[1];
-        const originalValue = descMatch[2];
-        if (!originalValue || originalValue.trim() === '') {
-          descTempLines.push(line); // Keep empty descriptions as is
-          continue;
-        }
-        const key = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
-        mappings[key] = decodeValue(originalValue);
-        descTempLines.push(`${indent}"{${key}}"`);
-        questDescCounter++;
-        continue;
-      }
-    }
-    
-    // Handle chapter_groups.snbt title replacements
-    if (currentFilename === 'chapter_groups.snbt') {
-      const newLine = line.replace(/title:\s*"((?:[^"\\]|\\.)*)"/g, (match, value) => {
-        if (!value || value.trim() === '') return match;
-        const key = `${abbreviation}.chapter_groups.title${chapterGroupTitleCounter}`;
-        chapterGroupTitleCounter++;
-        mappings[key] = decodeValue(value);
-        return `title: "{${key}}"`;
-      });
-      modifiedLines.push(newLine);
-      continue;
-    }
-    
-    // Handle context-specific titles (rewards/tasks)
-    const titleMatch = line.match(/^(\s*)title:\s*"((?:[^"\\]|\\.)*)"\s*$/);
-    if (titleMatch) {
-      const indent = titleMatch[1];
-      const originalValue = titleMatch[2];
-      
-      if (!originalValue || originalValue.trim() === '') {
-        modifiedLines.push(line);
-        continue;
-      }
-      
-      const decodedValue = decodeValue(originalValue);
-      
-      if (currentContext === 'rewards') {
-        const key = `${abbreviation}.quests.${chapterFolder}.${fileId}.reward${rewardTitleCounter}`;
-        rewardTitleCounter++;
-        mappings[key] = decodedValue;
-        modifiedLines.push(`${indent}title: "{${key}}"`);
-        continue;
-      } else if (currentContext === 'tasks') {
-        const key = `${abbreviation}.quests.${chapterFolder}.${fileId}.task${taskTitleCounter}`;
-        taskTitleCounter++;
-        mappings[key] = decodedValue;
-        modifiedLines.push(`${indent}title: "{${key}}"`);
-        continue;
-      }
-    }
-    
-    // Handle general title/subtitle
-    let modified = false;
-    for (const type of ['title', 'subtitle']) {
-      const match = line.match(new RegExp(`^(\\s*)${type}:\\s*"((?:[^"\\\\]|\\\\.)*)"\\s*$`));
-      if (match) {
-        const indent = match[1];
-        const originalValue = match[2];
-        
-        if (/\{ftbquests\./.test(originalValue) || !originalValue || originalValue.trim() === '') {
-          break;
-        }
-        
-        let key: string;
-        if (currentFilename === 'data.snbt') {
-          key = `${abbreviation}.modpack.${type}`;
-        } else if (chapterFolder && fileId && braceDepth <= 2) {
-          key = `${abbreviation}.${chapterFolder}.${fileId}.${type}`;
-        } else if (chapterFolder && fileId && braceDepth > 2) {
-          const counter = type === 'title' ? questTitleCounter : questSubtitleCounter;
-          key = `${abbreviation}.quests.${chapterFolder}.${fileId}.${type}${counter}`;
-          if (type === 'title') {
-            questTitleCounter++;
-          } else {
-            questSubtitleCounter++;
-          }
-        } else {
-          break;
-        }
-        
-        mappings[key] = decodeValue(originalValue);
-        modifiedLines.push(`${indent}${type}: "{${key}}"`);
-        modified = true;
-        break;
-      }
-    }
-    
-    if (!modified && !withinDescription) {
-      modifiedLines.push(line);
-    }
-  }
-  
-  return {
-    modifiedContent: modifiedLines.join('\n'),
-    mappings
-  };
-}
-
 export async function processSnbtFiles(files: File[]) {
   const logLines: string[] = [];
   
   try {
-    // Determinar nome base para abreviação
+    // Determinar nome base para abreviação (nome da pasta do projeto)
     let baseName = 'modpack';
     
-    // Se há uma pasta comum, usar o nome da pasta
     if (files.length > 0) {
       const firstFile = files[0];
       if (firstFile.webkitRelativePath) {
@@ -463,34 +409,38 @@ export async function processSnbtFiles(files: File[]) {
         if (pathParts.length > 1) {
           baseName = pathParts[0]; // Nome da pasta principal
         }
-      } else {
-        // Se não há pasta, usar nome do primeiro arquivo
-        baseName = generateFileAbbreviation(firstFile.name.replace('.snbt', ''));
       }
     }
     
     const abbreviation = generateAbbreviation(baseName);
-    logLines.push(`Processing files with abbreviation: ${abbreviation}`);
+    logLines.push(`Modpack: ${baseName} (${abbreviation})`);
     
     const JSZip = (await import("jszip")).default;
     const outputZip = new JSZip();
     const allMapeamentos: Array<[string, Record<string, string>]> = [];
     
-    for (const file of files) {
-      logLines.push(`\n→ ${file.name}`);
+    // Filtrar apenas arquivos dentro de config/ftbquests/quests/
+    const filteredFiles = files.filter(file => {
+      const path = file.webkitRelativePath || file.name;
+      return path.includes('config/ftbquests/quests/') && file.name.endsWith('.snbt');
+    }).sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(b.webkitRelativePath || b.name));
+    
+    for (const file of filteredFiles) {
+      const relativePath = file.webkitRelativePath || file.name;
+      logLines.push(`\n→ ${relativePath}`);
       
       const content = await file.text();
-      const relativePath = file.webkitRelativePath || file.name;
+      const questsPath = relativePath.substring(relativePath.indexOf('config/ftbquests/quests/') + 'config/ftbquests/quests/'.length);
       
       const { modifiedContent, mappings } = processSnbtContent(
         content, 
-        relativePath, 
+        questsPath, 
         'config/ftbquests/quests', 
         abbreviation
       );
       
-      outputZip.file(`output/config/ftbquests/quests/${file.name}`, modifiedContent);
-      allMapeamentos.push([relativePath, mappings]);
+      outputZip.file(`output/config/ftbquests/quests/${questsPath}`, modifiedContent);
+      allMapeamentos.push([questsPath, mappings]);
       
       logLines.push("  ✓ OK");
     }
