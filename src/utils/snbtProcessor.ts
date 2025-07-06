@@ -21,6 +21,9 @@ function createTranslationJson(
     const filteredMappings: Record<string, string> = {};
     
     for (const [key, value] of Object.entries(mappings)) {
+      // Filtrar valores null, undefined ou vazios
+      if (!value || value.trim() === '') continue;
+      
       if (key.startsWith(`${abbreviation}.modpack.`)) {
         modpackEntries[key] = value;
       } else {
@@ -226,11 +229,11 @@ function processSnbtContent(
   const currentFilename = relativePath.split('/').pop() || '';
   const fileId = currentFilename.endsWith('.snbt') 
     ? currentFilename.replace('.snbt', '') 
-    : null;
+    : '';
   
   const pathParts = relativePath.split('/');
   const subpath = pathParts.length > 1 ? pathParts.slice(0, -1).join('/') : '';
-  const chapterFolder = subpath.split('/')[0] || null;
+  const chapterFolder = subpath.split('/')[0] || '';
   
   let braceDepth = 0;
   let questTitleCounter = 1;
@@ -269,7 +272,8 @@ function processSnbtContent(
       
       descriptions.forEach(desc => {
         const value = desc.slice(1, -1); // Remove quotes
-        const key = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
+        if (!value || value.trim() === '') return; // Skip empty values
+        const key = `${abbreviation}.quests.chapters.${chapterFolder}.desc${questDescCounter}`;
         mappings[key] = decodeValue(value);
         novasLinhas.push(`${indent}  "{${key}}"`);
         questDescCounter++;
@@ -300,7 +304,11 @@ function processSnbtContent(
       if (descMatch) {
         const indent = descMatch[1];
         const originalValue = descMatch[2];
-        const key = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
+        if (!originalValue || originalValue.trim() === '') {
+          descTempLines.push(line); // Keep empty descriptions as is
+          continue;
+        }
+        const key = `${abbreviation}.quests.chapters.${chapterFolder}.desc${questDescCounter}`;
         mappings[key] = decodeValue(originalValue);
         descTempLines.push(`${indent}"{${key}}"`);
         questDescCounter++;
@@ -311,6 +319,7 @@ function processSnbtContent(
     // Handle chapter_groups.snbt title replacements
     if (currentFilename === 'chapter_groups.snbt') {
       const newLine = line.replace(/title:\s*"((?:[^"\\]|\\.)*)"/g, (match, value) => {
+        if (!value || value.trim() === '') return match;
         const key = `${abbreviation}.chapter_groups.title${chapterGroupTitleCounter}`;
         chapterGroupTitleCounter++;
         mappings[key] = decodeValue(value);
@@ -325,16 +334,20 @@ function processSnbtContent(
     if (titleMatch) {
       const indent = titleMatch[1];
       const originalValue = titleMatch[2];
+      if (!originalValue || originalValue.trim() === '') {
+        modifiedLines.push(line);
+        continue;
+      }
       const decodedValue = decodeValue(originalValue);
       
       if (currentContext === 'rewards') {
-        const key = `${abbreviation}.quests.${chapterFolder}.${fileId}.reward${rewardTitleCounter}`;
+        const key = `${abbreviation}.quests.chapters.${chapterFolder}.reward${rewardTitleCounter}`;
         rewardTitleCounter++;
         mappings[key] = decodedValue;
         modifiedLines.push(`${indent}title: "{${key}}"`);
         continue;
       } else if (currentContext === 'tasks') {
-        const key = `${abbreviation}.quests.${chapterFolder}.${fileId}.task${taskTitleCounter}`;
+        const key = `${abbreviation}.quests.chapters.${chapterFolder}.task${taskTitleCounter}`;
         taskTitleCounter++;
         mappings[key] = decodedValue;
         modifiedLines.push(`${indent}title: "{${key}}"`);
@@ -350,7 +363,7 @@ function processSnbtContent(
         const indent = match[1];
         const originalValue = match[2];
         
-        if (/\{ftbquests\./.test(originalValue)) {
+        if (/\{ftbquests\./.test(originalValue) || !originalValue || originalValue.trim() === '') {
           break;
         }
         
@@ -358,10 +371,10 @@ function processSnbtContent(
         if (currentFilename === 'data.snbt') {
           key = `${abbreviation}.modpack.${type}`;
         } else if (chapterFolder && fileId && braceDepth <= 2) {
-          key = `${abbreviation}.${chapterFolder}.${fileId}.${type}`;
+          key = `${abbreviation}.chapters.${chapterFolder}.${type}`;
         } else if (chapterFolder && fileId && braceDepth > 2) {
           const counter = type === 'title' ? questTitleCounter : questSubtitleCounter;
-          key = `${abbreviation}.quests.${chapterFolder}.${fileId}.${type}${counter}`;
+          key = `${abbreviation}.quests.chapters.${chapterFolder}.${type}${counter}`;
           if (type === 'title') {
             questTitleCounter++;
           } else {

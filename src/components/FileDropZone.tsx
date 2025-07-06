@@ -11,8 +11,8 @@ interface FileDropZoneProps {
 
 const ACCEPT = {
   "application/zip": [".zip"],
-  "text/plain": [".snbt"], // Para arquivos snbt detectados como text/plain
-  "application/octet-stream": [".snbt"], // fallback comum para arquivos sem MIME
+  "text/plain": [".snbt"],
+  "application/octet-stream": [".snbt"],
 };
 
 export const FileDropZone: React.FC<FileDropZoneProps> = ({ onFilesAccepted, processing }) => {
@@ -34,6 +34,14 @@ export const FileDropZone: React.FC<FileDropZoneProps> = ({ onFilesAccepted, pro
     disabled: processing,
   });
 
+  const handleFolderSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    const snbtFiles = files.filter(file => file.name.toLowerCase().endsWith('.snbt'));
+    if (snbtFiles.length > 0) {
+      onFilesAccepted(snbtFiles);
+    }
+  };
+
   return (
     <Card className="w-full px-8 py-12 flex flex-col items-center border-2 border-dashed border-muted animate-in">
       <div
@@ -54,11 +62,30 @@ export const FileDropZone: React.FC<FileDropZoneProps> = ({ onFilesAccepted, pro
             : (
                 <>
                   Arraste arquivos <span className="font-semibold">.zip</span> <b>ou</b> <span className="font-semibold">.snbt</span> aqui<br />
-                  <span className="text-xs">Ou clique para selecionar (arquivos ou pastas)</span>
+                  <span className="text-xs">Ou clique para selecionar arquivos</span>
                 </>
               )
           }
         </div>
+      </div>
+      
+      <div className="mt-4 w-full">
+        <label htmlFor="folder-input" className="block w-full">
+          <div className="w-full px-4 py-3 border-2 border-dashed border-muted-foreground/30 rounded-lg hover:border-primary/50 transition-colors cursor-pointer text-center">
+            <span className="text-sm font-medium">Ou selecione uma pasta do projeto</span>
+            <input
+              id="folder-input"
+              type="file"
+              // @ts-ignore - webkitdirectory is a valid HTML attribute
+              webkitdirectory=""
+              directory=""
+              multiple
+              onChange={handleFolderSelect}
+              className="hidden"
+              disabled={processing}
+            />
+          </div>
+        </label>
       </div>
     </Card>
   );
