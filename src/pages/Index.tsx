@@ -1,6 +1,6 @@
 
 import React from "react";
-import { processModpackZip } from "@/utils/snbtProcessor";
+import { processModpackZip, processSnbtFiles } from "@/utils/snbtProcessor";
 import { toast } from "@/components/ui/use-toast";
 import { extractQuestsFromSnbt } from "@/utils/extractQuestsFromSnbt";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -60,15 +60,9 @@ const Index = () => {
         }
         
         setExtractedQuests(allQuests);
-        const JSZip = (await import("jszip")).default;
-        const zip = new JSZip();
         
-        for (const file of snbtFiles) {
-          zip.file(`config/ftbquests/quests/${file.name}`, await file.text());
-        }
-        
-        const generatedZip = await zip.generateAsync({ type: "uint8array" });
-        const result = await processModpackZip(new Uint8Array(generatedZip));
+        // Use the new processSnbtFiles function
+        const result = await processSnbtFiles(snbtFiles);
         setLogLines(result.logLines);
         setJsonPreview(result.jsonResult.slice(0, 5000));
         const zipBlob = await result.outputZip.generateAsync({ type: "blob" });

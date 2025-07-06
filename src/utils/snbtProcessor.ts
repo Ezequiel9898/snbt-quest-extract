@@ -2,10 +2,72 @@
 import JSZip from 'jszip';
 
 function decodeValue(value: string): string {
+  // Simular o comportamento do Python's encode('latin-1').decode('unicode_escape')
   return value
     .replace(/\\n/g, '\n')
+    .replace(/\\t/g, '\t')
+    .replace(/\\r/g, '\r')
     .replace(/\\"/g, '"')
     .replace(/\\\\/g, '\\');
+}
+
+function generateAbbreviation(name: string): string {
+  const words = name.split(/[\W_]+/).filter(word => word.trim() !== '');
+  if (!words.length) {
+    return 'modpack';
+  }
+
+  const abbrev: string[] = [];
+  
+  // Para todos os words exceto o último, pegar primeira letra
+  for (let i = 0; i < words.length - 1; i++) {
+    if (words[i]) {
+      abbrev.push(words[i][0].toLowerCase());
+    }
+  }
+  
+  // Para a última palavra, se for número mantém, senão primeira letra
+  const lastWord = words[words.length - 1];
+  if (lastWord) {
+    abbrev.push(/^\d+$/.test(lastWord) ? lastWord : lastWord[0].toLowerCase());
+  }
+
+  return abbrev.join('') || 'modpack';
+}
+
+function generateFileAbbreviation(filename: string): string {
+  // Se o nome tem 4 ou menos letras, usar o nome completo
+  if (filename.length <= 4) {
+    return filename.toLowerCase();
+  }
+  
+  // Senão, abreviar para 4 letras
+  const words = filename.split(/[\W_]+/).filter(word => word.trim() !== '');
+  if (!words.length) {
+    return filename.substring(0, 4).toLowerCase();
+  }
+  
+  if (words.length === 1) {
+    return words[0].substring(0, 4).toLowerCase();
+  }
+  
+  // Pegar primeira letra de cada palavra até ter 4 letras
+  let abbrev = '';
+  for (const word of words) {
+    if (abbrev.length < 4 && word.length > 0) {
+      abbrev += word[0].toLowerCase();
+    }
+  }
+  
+  // Se ainda não tem 4 letras, completar com letras da primeira palavra
+  if (abbrev.length < 4 && words[0].length > 1) {
+    const firstWord = words[0].toLowerCase();
+    for (let i = 1; i < firstWord.length && abbrev.length < 4; i++) {
+      abbrev += firstWord[i];
+    }
+  }
+  
+  return abbrev.padEnd(4, 'x').substring(0, 4);
 }
 
 function createTranslationJson(
@@ -129,27 +191,6 @@ async function extractModpackName(zip: JSZip): Promise<string> {
   return 'Modpack';
 }
 
-function generateAbbreviation(modpackName: string): string {
-  const words = modpackName.split(/[\W_]+/).filter(word => word.trim() !== '');
-  if (!words.length) {
-    return 'modpack';
-  }
-
-  const abbrev: string[] = [];
-  for (let i = 0; i < words.length - 1; i++) {
-    if (words[i]) {
-      abbrev.push(words[i][0].toLowerCase());
-    }
-  }
-  
-  const lastWord = words[words.length - 1];
-  if (lastWord) {
-    abbrev.push(/^\d+$/.test(lastWord) ? lastWord : lastWord[0].toLowerCase());
-  }
-
-  return abbrev.join('') || 'modpack';
-}
-
 export async function processModpackZip(zipData: Uint8Array) {
   const logLines: string[] = [];
   const JSZip = (await import("jszip")).default;
@@ -231,9 +272,11 @@ function processSnbtContent(
     ? currentFilename.replace('.snbt', '') 
     : '';
   
+  // Calcular subpath como no Python
   const pathParts = relativePath.split('/');
-  const subpath = pathParts.length > 1 ? pathParts.slice(0, -1).join('/') : '';
-  const chapterFolder = subpath.split('/')[0] || '';
+  const dirPath = pathParts.length > 1 ? pathParts.slice(0, -1).join('/') : '';
+  const subpath = dirPath || '.';
+  const chapterFolder = subpath !== '.' ? subpath.split('/')[0] : null;
   
   let braceDepth = 0;
   let questTitleCounter = 1;
@@ -273,7 +316,7 @@ function processSnbtContent(
       descriptions.forEach(desc => {
         const value = desc.slice(1, -1); // Remove quotes
         if (!value || value.trim() === '') return; // Skip empty values
-        const key = `${abbreviation}.quests.chapters.${chapterFolder}.desc${questDescCounter}`;
+        const key = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
         mappings[key] = decodeValue(value);
         novasLinhas.push(`${indent}  "{${key}}"`);
         questDescCounter++;
@@ -308,7 +351,7 @@ function processSnbtContent(
           descTempLines.push(line); // Keep empty descriptions as is
           continue;
         }
-        const key = `${abbreviation}.quests.chapters.${chapterFolder}.desc${questDescCounter}`;
+        const key = `${abbreviation}.quests.${chapterFolder}.${fileId}.desc${questDescCounter}`;
         mappings[key] = decodeValue(originalValue);
         descTempLines.push(`${indent}"{${key}}"`);
         questDescCounter++;
@@ -334,20 +377,22 @@ function processSnbtContent(
     if (titleMatch) {
       const indent = titleMatch[1];
       const originalValue = titleMatch[2];
+      
       if (!originalValue || originalValue.trim() === '') {
         modifiedLines.push(line);
         continue;
       }
+      
       const decodedValue = decodeValue(originalValue);
       
       if (currentContext === 'rewards') {
-        const key = `${abbreviation}.quests.chapters.${chapterFolder}.reward${rewardTitleCounter}`;
+        const key = `${abbreviation}.quests.${chapterFolder}.${fileId}.reward${rewardTitleCounter}`;
         rewardTitleCounter++;
         mappings[key] = decodedValue;
         modifiedLines.push(`${indent}title: "{${key}}"`);
         continue;
       } else if (currentContext === 'tasks') {
-        const key = `${abbreviation}.quests.chapters.${chapterFolder}.task${taskTitleCounter}`;
+        const key = `${abbreviation}.quests.${chapterFolder}.${fileId}.task${taskTitleCounter}`;
         taskTitleCounter++;
         mappings[key] = decodedValue;
         modifiedLines.push(`${indent}title: "{${key}}"`);
@@ -371,10 +416,10 @@ function processSnbtContent(
         if (currentFilename === 'data.snbt') {
           key = `${abbreviation}.modpack.${type}`;
         } else if (chapterFolder && fileId && braceDepth <= 2) {
-          key = `${abbreviation}.chapters.${chapterFolder}.${type}`;
+          key = `${abbreviation}.${chapterFolder}.${fileId}.${type}`;
         } else if (chapterFolder && fileId && braceDepth > 2) {
           const counter = type === 'title' ? questTitleCounter : questSubtitleCounter;
-          key = `${abbreviation}.quests.chapters.${chapterFolder}.${type}${counter}`;
+          key = `${abbreviation}.quests.${chapterFolder}.${fileId}.${type}${counter}`;
           if (type === 'title') {
             questTitleCounter++;
           } else {
@@ -400,4 +445,77 @@ function processSnbtContent(
     modifiedContent: modifiedLines.join('\n'),
     mappings
   };
+}
+
+export async function processSnbtFiles(files: File[]) {
+  const logLines: string[] = [];
+  
+  try {
+    // Determinar nome base para abreviação
+    let baseName = 'modpack';
+    
+    // Se há uma pasta comum, usar o nome da pasta
+    if (files.length > 0) {
+      const firstFile = files[0];
+      if (firstFile.webkitRelativePath) {
+        // Extrair nome da pasta principal
+        const pathParts = firstFile.webkitRelativePath.split('/');
+        if (pathParts.length > 1) {
+          baseName = pathParts[0]; // Nome da pasta principal
+        }
+      } else {
+        // Se não há pasta, usar nome do primeiro arquivo
+        baseName = generateFileAbbreviation(firstFile.name.replace('.snbt', ''));
+      }
+    }
+    
+    const abbreviation = generateAbbreviation(baseName);
+    logLines.push(`Processing files with abbreviation: ${abbreviation}`);
+    
+    const JSZip = (await import("jszip")).default;
+    const outputZip = new JSZip();
+    const allMapeamentos: Array<[string, Record<string, string>]> = [];
+    
+    for (const file of files) {
+      logLines.push(`\n→ ${file.name}`);
+      
+      const content = await file.text();
+      const relativePath = file.webkitRelativePath || file.name;
+      
+      const { modifiedContent, mappings } = processSnbtContent(
+        content, 
+        relativePath, 
+        'config/ftbquests/quests', 
+        abbreviation
+      );
+      
+      outputZip.file(`output/config/ftbquests/quests/${file.name}`, modifiedContent);
+      allMapeamentos.push([relativePath, mappings]);
+      
+      logLines.push("  ✓ OK");
+    }
+    
+    if (allMapeamentos.length > 0) {
+      const jsonResult = createTranslationJson(allMapeamentos, abbreviation);
+      outputZip.file("output/en_us.json", jsonResult);
+      logLines.push("\n✓ Translations saved to: en_us.json");
+      
+      return {
+        logLines,
+        outputZip,
+        jsonResult
+      };
+    } else {
+      logLines.push("\n! No translatable text found");
+      return {
+        logLines,
+        outputZip,
+        jsonResult: "{}"
+      };
+    }
+    
+  } catch (error) {
+    logLines.push(`\n! Error: ${error}`);
+    throw error;
+  }
 }
