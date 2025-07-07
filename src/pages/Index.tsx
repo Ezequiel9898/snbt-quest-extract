@@ -11,6 +11,7 @@ import { FooterSection } from "@/components/FooterSection";
 import { ConfigurationPanel, ProcessingConfig, type ProcessingConfig as Config } from "@/components/ConfigurationPanel";
 import { OptimizedQuestList } from "@/components/OptimizedQuestList";
 import { QuestData } from "@/utils/questExtractor";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
@@ -117,13 +118,15 @@ const Index = () => {
       <div className="flex-1 flex flex-col py-8 px-4 md:px-8 max-w-7xl mx-auto w-full">
         <HeaderSection />
         
-        <div className="mb-6">
-          <button
+        <div className="mb-6 fade-in-up">
+          <Button
             onClick={() => setShowConfig(!showConfig)}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            variant="grass"
+            size="lg"
+            className="font-semibold"
           >
-            {showConfig ? 'Ocultar' : 'Mostrar'} Configurações
-          </button>
+            ⚙️ {showConfig ? 'Ocultar' : 'Mostrar'} Configurações Avançadas
+          </Button>
         </div>
         
         {showConfig && (

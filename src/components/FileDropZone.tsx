@@ -43,36 +43,47 @@ export const FileDropZone: React.FC<FileDropZoneProps> = ({ onFilesAccepted, pro
   };
 
   return (
-    <Card className="w-full px-8 py-12 flex flex-col items-center border-2 border-dashed border-muted animate-in">
+    <Card className="w-full px-8 py-12 flex flex-col items-center minecraft-card border-4 border-dashed border-primary/30 hover:border-primary/60 transition-all duration-300 slide-up">
       <div
         {...getRootProps()}
-        className={`w-full flex flex-col items-center py-6 transition-all duration-200 cursor-pointer ${
-          isDragActive ? "bg-accent/60" : ""
-        }`}
+        className={`w-full flex flex-col items-center py-8 transition-all duration-300 cursor-pointer rounded-lg ${
+          isDragActive ? "bg-primary/10 scale-105" : "hover:bg-primary/5"
+        } ${processing ? "animate-pulse" : ""}`}
         tabIndex={0}
         aria-label="Área para soltar arquivos ZIP ou SNBT"
         ref={dropRef}
         aria-disabled={processing}
       >
         <input {...getInputProps()} />
-        <UploadCloud size={44} className="mb-3 text-primary" />
-        <div className="font-medium text-lg text-center">
+        <UploadCloud size={56} className={`mb-4 text-primary ${processing ? "animate-bounce" : "glow"}`} />
+        <div className="font-bold text-xl text-center font-orbitron">
           {processing
-            ? "Processando..."
+            ? (
+                <>
+                  <div className="text-accent">⚡ Processando...</div>
+                  <div className="text-sm text-muted-foreground mt-2">Extraindo quests do Minecraft</div>
+                </>
+              )
             : (
                 <>
-                  Arraste arquivos <span className="font-semibold">.zip</span> <b>ou</b> <span className="font-semibold">.snbt</span> aqui<br />
-                  <span className="text-xs">Ou clique para selecionar arquivos</span>
+                  <div className="text-primary">📦 Arraste seus arquivos aqui!</div>
+                  <div className="text-base mt-2 text-muted-foreground">
+                    Suporta <span className="font-semibold text-accent">.zip</span> e <span className="font-semibold text-accent">.snbt</span>
+                  </div>
+                  <div className="text-sm mt-1 text-muted-foreground">
+                    🖱️ Ou clique para selecionar
+                  </div>
                 </>
               )
           }
         </div>
       </div>
       
-      <div className="mt-4 w-full">
+      <div className="mt-6 w-full">
         <label htmlFor="folder-input" className="block w-full">
-          <div className="w-full px-4 py-3 border-2 border-dashed border-muted-foreground/30 rounded-lg hover:border-primary/50 transition-colors cursor-pointer text-center">
-            <span className="text-sm font-medium">Ou selecione uma pasta do projeto</span>
+          <div className="w-full px-6 py-4 minecraft-card border-2 border-dashed border-accent/50 hover:border-accent transition-all duration-300 cursor-pointer text-center hover:scale-105">
+            <span className="text-base font-semibold text-accent">📁 Ou selecione uma pasta completa</span>
+            <div className="text-sm text-muted-foreground mt-1">Para processar diretórios do modpack</div>
             <input
               id="folder-input"
               type="file"

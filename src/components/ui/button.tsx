@@ -18,6 +18,11 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        minecraft: "minecraft-button",
+        grass: "minecraft-button bg-gradient-to-br from-green-500 to-green-600 text-white hover:from-green-400 hover:to-green-500",
+        stone: "minecraft-button bg-gradient-to-br from-gray-400 to-gray-600 text-white hover:from-gray-300 hover:to-gray-500",
+        diamond: "minecraft-button bg-gradient-to-br from-cyan-400 to-cyan-600 text-white hover:from-cyan-300 hover:to-cyan-500 glow",
+        gold: "minecraft-button bg-gradient-to-br from-yellow-400 to-yellow-600 text-white hover:from-yellow-300 hover:to-yellow-500",
       },
       size: {
         default: "h-10 px-4 py-2",
