@@ -19,7 +19,7 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				'orbitron': ['Orbitron', 'monospace'],
+				'minecraft': ['Minecraft', 'monospace'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',

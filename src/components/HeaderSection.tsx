@@ -27,13 +27,13 @@ export const HeaderSection = () => (
 
     <div className="flex gap-4 fade-in-up">
       <Link to="/about">
-        <Button variant="diamond" size="lg" className="font-semibold">
+        <Button variant="default" size="lg" className="font-semibold">
           <Info size={16} />
           Sobre a Ferramenta
         </Button>
       </Link>
       
-      <Button variant="gold" size="lg" className="font-semibold" onClick={() => {
+      <Button variant="secondary" size="lg" className="font-semibold" onClick={() => {
         document.querySelector('[aria-label="Área para soltar arquivos ZIP ou SNBT"]')?.scrollIntoView({ 
           behavior: 'smooth' 
         });

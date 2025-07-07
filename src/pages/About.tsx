@@ -13,7 +13,7 @@ const About = () => {
       <div className="flex-1 flex flex-col py-8 px-4 md:px-8 max-w-4xl mx-auto w-full">
         <div className="mb-8 bounce-in">
           <Link to="/">
-            <Button variant="grass" className="mb-4">
+            <Button variant="outline" className="mb-4">
               <ArrowLeft size={16} />
               Voltar
             </Button>
@@ -177,12 +177,12 @@ const About = () => {
             Desenvolvido com ❤️ para a comunidade Minecraft
           </p>
           <div className="flex gap-4 justify-center">
-            <Button variant="diamond" size="lg">
+            <Button variant="default" size="lg">
               <Sparkles size={16} />
               Começar Agora
             </Button>
             <Link to="/">
-              <Button variant="stone" size="lg">
+              <Button variant="outline" size="lg">
                 Voltar ao Início
               </Button>
             </Link>

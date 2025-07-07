@@ -4,7 +4,8 @@ import { processModpackZip, processSnbtFiles } from "@/utils/snbtProcessor";
 import { toast } from "@/components/ui/use-toast";
 import { extractValidQuests } from "@/utils/questExtractor";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { HeaderSection } from "@/components/HeaderSection";
+import { Navigation } from "@/components/Navigation";
+
 import { LeftPanel } from "@/components/LeftPanel";
 import { DownloadPanel } from "@/components/DownloadPanel";
 import { FooterSection } from "@/components/FooterSection";
@@ -113,17 +114,20 @@ const Index = () => {
 
   return (
     <div className="min-h-screen w-full bg-background flex flex-col">
+      <Navigation />
       <ThemeToggle />
       
       <div className="flex-1 flex flex-col py-8 px-4 md:px-8 max-w-7xl mx-auto w-full">
-        <HeaderSection />
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-center mb-4">FTB Quest Translator</h1>
+          <p className="text-center text-muted-foreground">Traduza seus quests do FTB facilmente</p>
+        </div>
         
-        <div className="mb-6 fade-in-up">
+        <div className="mb-6">
           <Button
             onClick={() => setShowConfig(!showConfig)}
-            variant="grass"
+            variant="secondary"
             size="lg"
-            className="font-semibold"
           >
             ⚙️ {showConfig ? 'Ocultar' : 'Mostrar'} Configurações Avançadas
           </Button>
